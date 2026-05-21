@@ -1,6 +1,6 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Booking } from "@prisma/client";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { revalidatePath } from "next/cache";
 
@@ -90,7 +90,7 @@ export async function getBookings(status?: string): Promise<BookingRecord[]> {
       where: status && status !== "ALL" ? { status } : undefined,
       orderBy: { createdAt: "desc" },
     });
-    return rows.map((b) => ({ ...b, createdAt: b.createdAt.toISOString() }));
+    return (rows as Booking[]).map((b) => ({ ...b, createdAt: b.createdAt.toISOString() }));
   } catch (err) {
     console.error("getBookings error:", err);
     return [];
