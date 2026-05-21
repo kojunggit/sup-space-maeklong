@@ -10,18 +10,16 @@ import { createBooking } from "../actions/booking";
 
 // ─── Date utilities ───────────────────────────────────────────────────────────
 
-const THAI_DAYS    = ["อา", "จ.", "อ.", "พ.", "พฤ", "ศ.", "ส."];
-const THAI_MONTHS  = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+const THAI_DAYS   = ["อา", "จ.", "อ.", "พ.", "พฤ", "ศ.", "ส."];
+const THAI_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
 function toIso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-
 function isoToLabel(iso: string): string {
   const d = new Date(iso + "T00:00:00");
   return `${THAI_DAYS[d.getDay()]} ${d.getDate()} ${THAI_MONTHS[d.getMonth()]}`;
 }
-
 function generateDays(count = 14) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   return Array.from({ length: count }, (_, i) => {
@@ -30,18 +28,15 @@ function generateDays(count = 14) {
   });
 }
 
-// ─── Availability types ───────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AvailDay { date: string; morning: boolean; afternoon: boolean; available: boolean; }
-
-// ─── Photo permission ─────────────────────────────────────────────────────────
-
 type PhotoPermission = "allow" | "notAllow" | "private";
 
 const PHOTO_OPTIONS: { id: PhotoPermission; label: string; sub: string; badge?: string }[] = [
-  { id: "allow",    label: "อนุญาต",       sub: "ให้ใช้ภาพใน Social ได้ · ได้รับภาพเป็นที่ระลึก" },
-  { id: "notAllow", label: "ไม่อนุญาต",    sub: "ไม่ต้องการให้ถ่ายภาพ" },
-  { id: "private",  label: "Private",      sub: "ได้ภาพส่วนตัว · ไม่เผยแพร่ใน Social", badge: `+฿${PRIVATE_PHOTO_PRICE}/คน` },
+  { id: "allow",    label: "อนุญาต",    sub: "ให้ใช้ภาพใน Social ได้ · ได้รับภาพเป็นที่ระลึก" },
+  { id: "notAllow", label: "ไม่อนุญาต", sub: "ไม่ต้องการให้ถ่ายภาพ" },
+  { id: "private",  label: "Private",   sub: "ได้ภาพส่วนตัว · ไม่เผยแพร่ใน Social", badge: `+฿${PRIVATE_PHOTO_PRICE}/คน` },
 ];
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
@@ -49,7 +44,6 @@ const PHOTO_OPTIONS: { id: PhotoPermission; label: string; sub: string; badge?: 
 function Label({ children }: { children: React.ReactNode }) {
   return <div style={{ fontFamily: "var(--font-kanit)", fontSize: 13, fontWeight: 500, color: "var(--fg-2)", marginBottom: 10 }}>{children}</div>;
 }
-
 function TrustChip({ label }: { label: string }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--font-kanit)", fontWeight: 400, color: "var(--fg-2)", whiteSpace: "nowrap" }}>
@@ -58,9 +52,8 @@ function TrustChip({ label }: { label: string }) {
     </span>
   );
 }
-
 function Stepper({ value, setValue, min, max }: { value: number; setValue: (v: number) => void; min: number; max: number }) {
-  const btn: React.CSSProperties = { width: 36, height: 36, borderRadius: 999, border: "1.5px solid var(--sup-teal)", background: "#fff", color: "var(--sup-teal)", fontSize: 20, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", lineHeight: 1 };
+  const btn: React.CSSProperties = { width: 36, height: 36, borderRadius: 999, border: "1.5px solid var(--sup-teal)", background: "#fff", color: "var(--sup-teal)", fontSize: 20, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" };
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
       <button onClick={() => setValue(Math.max(min, value - 1))} style={btn} aria-label="ลด">−</button>
@@ -69,7 +62,6 @@ function Stepper({ value, setValue, min, max }: { value: number; setValue: (v: n
     </div>
   );
 }
-
 function Row({ k, v, big, muted }: { k: string; v: string; big?: boolean; muted?: boolean }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", alignItems: "baseline", gap: 12 }}>
@@ -92,14 +84,11 @@ function StepWhen({ dateIso, onSelect, availability, loading, weekOffset, setWee
   return (
     <div>
       <Label>เลือกวันที่</Label>
-
-      {/* Week navigation */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <button onClick={() => setWeekOffset(0)} disabled={weekOffset === 0} className="btn btn-ghost" style={{ fontSize: 12, padding: "6px 12px", opacity: weekOffset === 0 ? 0.35 : 1 }}>← สัปดาห์นี้</button>
         <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: "var(--fg-3)", fontWeight: 500 }}>{weekOffset === 0 ? "7 วันข้างหน้า" : "7 วันถัดไป"}</span>
         <button onClick={() => setWeekOffset(1)} disabled={weekOffset === 1} className="btn btn-ghost" style={{ fontSize: 12, padding: "6px 12px", opacity: weekOffset === 1 ? 0.35 : 1 }}>สัปดาห์หน้า →</button>
       </div>
-
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8 }}>
         {days.map((d) => {
           const avail = availability.find((a) => a.date === d.iso);
@@ -107,28 +96,18 @@ function StepWhen({ dateIso, onSelect, availability, loading, weekOffset, setWee
           const selected = dateIso === d.iso;
           return (
             <button key={d.iso} onClick={() => isAvail && onSelect(d.iso)} disabled={!isAvail}
-              style={{
-                padding: "12px 4px", borderRadius: 10, position: "relative", cursor: isAvail ? "pointer" : "not-allowed",
-                border: selected ? "2px solid var(--sup-orange)" : "1.5px solid var(--border-2)",
-                background: selected ? "#FFF4E5" : (isAvail ? "#fff" : "var(--slate-100)"),
-                color: selected ? "var(--orange-700)" : (isAvail ? "var(--fg-1)" : "var(--fg-4)"),
-                opacity: isAvail ? 1 : 0.5,
-                fontFamily: "var(--font-kanit)",
-                transition: "all 180ms var(--ease-out)",
-              }}>
+              style={{ padding: "12px 4px", borderRadius: 10, position: "relative", cursor: isAvail ? "pointer" : "not-allowed", border: selected ? "2px solid var(--sup-orange)" : "1.5px solid var(--border-2)", background: selected ? "#FFF4E5" : (isAvail ? "#fff" : "var(--slate-100)"), color: selected ? "var(--orange-700)" : (isAvail ? "var(--fg-1)" : "var(--fg-4)"), opacity: isAvail ? 1 : 0.5, fontFamily: "var(--font-kanit)", transition: "all 180ms var(--ease-out)" }}>
               <div style={{ fontSize: 12, fontWeight: 500, opacity: 0.7 }}>{d.d}</div>
               <div style={{ fontFamily: "var(--font-inter)", fontSize: 20, fontWeight: 700, marginTop: 2 }}>{d.n}</div>
               <div style={{ fontSize: 10, opacity: 0.65 }}>{d.sub}</div>
-              {/* Availability dot */}
               {!loading && avail && (
                 <div style={{ position: "absolute", bottom: 4, left: "50%", transform: "translateX(-50%)", width: 5, height: 5, borderRadius: 999, background: avail.available ? "var(--success)" : "var(--danger)" }} />
               )}
-              {loading && <div style={{ position: "absolute", bottom: 4, left: "50%", transform: "translateX(-50%)", width: 5, height: 5, borderRadius: 999, background: "var(--sand-200)" }} />}
+              {loading && <div style={{ position: "absolute", bottom: 4, left: "50%", transform: "translateX(-50%)", width: 5, height: 5, borderRadius: 999, background: "var(--sand-200)", animation: "pulse 1.5s ease-in-out infinite" }} />}
             </button>
           );
         })}
       </div>
-
       <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--teal-50)", borderRadius: 8, fontSize: 13, color: "var(--teal-700)", display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ fontWeight: 500, whiteSpace: "nowrap" }}>เคล็ดลับ —</span>
         <span>{loading ? "กำลังตรวจสอบวันว่าง..." : "จุดเขียว = ยังมีที่ว่าง · จุดแดง = เต็มแล้ว · ยืนยันใน LINE ภายใน 1 ชม."}</span>
@@ -145,7 +124,6 @@ function StepTime({ timeSlot, setTimeSlot, availability, dateIso }: {
 }) {
   const dayAvail = availability.find((d) => d.date === dateIso);
   const slotAvail = (id: TimeSlotId) => !dayAvail || (id === "MORNING" ? dayAvail.morning : dayAvail.afternoon);
-
   return (
     <div>
       <Label>เลือกรอบ</Label>
@@ -155,21 +133,12 @@ function StepTime({ timeSlot, setTimeSlot, availability, dateIso }: {
           const selected = timeSlot === t.id;
           return (
             <button key={t.id} onClick={() => avail && setTimeSlot(t.id)} disabled={!avail}
-              style={{
-                textAlign: "left", padding: "20px 18px", borderRadius: 12, position: "relative",
-                border: selected ? "2px solid var(--sup-orange)" : "1.5px solid var(--border-2)",
-                background: selected ? "#FFF4E5" : (avail ? "#fff" : "var(--slate-100)"),
-                cursor: avail ? "pointer" : "not-allowed", fontFamily: "var(--font-kanit)",
-                opacity: avail ? 1 : 0.5,
-                transition: "all 180ms var(--ease-out)",
-              }}>
+              style={{ textAlign: "left", padding: "20px 18px", borderRadius: 12, position: "relative", border: selected ? "2px solid var(--sup-orange)" : "1.5px solid var(--border-2)", background: selected ? "#FFF4E5" : (avail ? "#fff" : "var(--slate-100)"), cursor: avail ? "pointer" : "not-allowed", fontFamily: "var(--font-kanit)", opacity: avail ? 1 : 0.5, transition: "all 180ms var(--ease-out)" }}>
               <div style={{ fontSize: 28, color: selected ? "var(--sup-orange)" : "var(--slate-300)", lineHeight: 1, marginBottom: 8 }}>{t.icon}</div>
               <div style={{ fontWeight: 700, fontSize: 17, color: "var(--fg-1)", whiteSpace: "nowrap" }}>{t.label}</div>
               <div style={{ fontFamily: "var(--font-inter)", fontSize: 13, color: "var(--fg-3)", marginTop: 2, whiteSpace: "nowrap" }}>{t.time}</div>
               <div style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: "var(--fg-4)", marginTop: 2 }}>{t.en}</div>
-              {!avail && (
-                <span style={{ position: "absolute", top: 10, right: 10, background: "var(--danger)", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>เต็มแล้ว</span>
-              )}
+              {!avail && <span style={{ position: "absolute", top: 10, right: 10, background: "var(--danger)", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>เต็มแล้ว</span>}
             </button>
           );
         })}
@@ -283,15 +252,21 @@ function StepPaddlers({ paddlers, setPaddlers, skill, setSkill, weight, setWeigh
 
 // ─── Step 5: Contact ──────────────────────────────────────────────────────────
 
-const inputStyle: React.CSSProperties = { fontFamily: "var(--font-kanit)", fontSize: 15, padding: "11px 13px", borderRadius: 8, border: "1.5px solid var(--border-2)", background: "#fff", color: "var(--fg-1)", outline: "none", width: "100%" };
+const inputStyle: React.CSSProperties = {
+  fontFamily: "var(--font-kanit)", fontSize: 15, padding: "11px 13px",
+  borderRadius: 8, border: "1.5px solid var(--border-2)",
+  background: "#fff", color: "var(--fg-1)", outline: "none", width: "100%",
+};
+const inputErrorStyle: React.CSSProperties = { ...inputStyle, borderColor: "var(--danger)" };
 
-function StepContact({ name, setName, phone, setPhone, pickupAddress, setPickupAddress, notes, setNotes, photoPermission, setPhotoPermission, paddlers, summary }: {
+function StepContact({ name, setName, phone, setPhone, pickupAddress, setPickupAddress, notes, setNotes, photoPermission, setPhotoPermission, paddlers, summary, fieldErrors }: {
   name: string; setName: (s: string) => void;
   phone: string; setPhone: (s: string) => void;
   pickupAddress: string; setPickupAddress: (s: string) => void;
   notes: string; setNotes: (s: string) => void;
   photoPermission: PhotoPermission; setPhotoPermission: (p: PhotoPermission) => void;
   paddlers: number;
+  fieldErrors: { name?: string; phone?: string };
   summary: { date: string; timeSlot: { label: string; time: string }; route: { name: string; price: number }; paddlers: number; skill: SkillLevel; photoPermission: PhotoPermission; baseTotal: number; photoTotal: number; total: number; };
 }) {
   const canPrivate = paddlers >= 2;
@@ -302,13 +277,21 @@ function StepContact({ name, setName, phone, setPhone, pickupAddress, setPickupA
     <div style={{ display: "grid", gap: 14 }}>
       {/* Contact fields */}
       <label style={{ display: "grid", gap: 6 }}>
-        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)" }}>ชื่อผู้จอง</span>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="มะลิ สุวรรณภา" style={inputStyle} />
+        <span style={{ fontSize: 12, fontWeight: 500, color: fieldErrors.name ? "var(--danger)" : "var(--fg-2)" }}>
+          ชื่อผู้จอง <span style={{ color: "var(--danger)" }}>*</span>
+        </span>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="มะลิ สุวรรณภา" style={fieldErrors.name ? inputErrorStyle : inputStyle} />
+        {fieldErrors.name && <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 500 }}>⚠ {fieldErrors.name}</span>}
       </label>
+
       <label style={{ display: "grid", gap: 6 }}>
-        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)" }}>เบอร์โทร หรือ LINE ID</span>
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="083 714 6958" style={inputStyle} />
+        <span style={{ fontSize: 12, fontWeight: 500, color: fieldErrors.phone ? "var(--danger)" : "var(--fg-2)" }}>
+          เบอร์โทร หรือ LINE ID <span style={{ color: "var(--danger)" }}>*</span>
+        </span>
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="083 714 6958" style={fieldErrors.phone ? inputErrorStyle : inputStyle} />
+        {fieldErrors.phone && <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 500 }}>⚠ {fieldErrors.phone}</span>}
       </label>
+
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)" }}>
           ที่อยู่รับ-ส่ง{" "}
@@ -316,6 +299,7 @@ function StepContact({ name, setName, phone, setPhone, pickupAddress, setPickupA
         </span>
         <input value={pickupAddress} onChange={(e) => setPickupAddress(e.target.value)} placeholder="บ้านเลขที่ / ชื่อโรงแรม / สถานที่" style={inputStyle} />
       </label>
+
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)" }}>หมายเหตุเพิ่มเติม</span>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="เช่น มีเด็กเล็ก มีผู้สูงอายุ ความต้องการพิเศษ ฯลฯ" style={{ ...inputStyle, resize: "vertical", minHeight: 68 }} />
@@ -324,7 +308,6 @@ function StepContact({ name, setName, phone, setPhone, pickupAddress, setPickupA
       {/* Photo permission */}
       <div>
         <Label>การถ่ายภาพ</Label>
-        {/* Hint */}
         <div style={{ padding: "10px 14px", background: "var(--teal-50)", borderRadius: 8, fontSize: 12, color: "var(--teal-700)", lineHeight: 1.65, marginBottom: 10 }}>
           <strong style={{ fontWeight: 600 }}>ℹ การอนุญาตถ่ายภาพ — </strong>
           การอนุญาตหมายถึงให้สิทธิ์กับทาง Sup Space Maeklong นำภาพไปเผยแพร่ในสื่อ social ได้ และลูกค้าจะได้รับภาพที่ถ่ายเป็นที่ระลึก
@@ -370,25 +353,37 @@ function StepContact({ name, setName, phone, setPhone, pickupAddress, setPickupA
 
 // ─── Confirmed state ──────────────────────────────────────────────────────────
 
-function ConfirmedState({ date, timeSlot, route, paddlers, name, photoPermission, total, joinHost, onReset }: {
+function ConfirmedState({ date, timeSlot, route, paddlers, name, photoPermission, total, bookingId, joinHost, onReset }: {
   date: string; timeSlot: { label: string }; route: { name: string };
   paddlers: number; name: string; photoPermission: PhotoPermission;
-  total: number; joinHost: string | null; onReset: () => void;
+  total: number; bookingId: string; joinHost: string | null; onReset: () => void;
 }) {
   const photoLabel = PHOTO_OPTIONS.find((p) => p.id === photoPermission)?.label ?? "";
+  const refId = bookingId ? bookingId.slice(-8).toUpperCase() : "—";
+
   return (
     <div style={{ textAlign: "center", padding: "12px 0" }}>
       <div style={{ width: 76, height: 76, borderRadius: 999, background: "var(--success-soft)", color: "var(--success)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 36, fontWeight: 800, animation: "pop 480ms cubic-bezier(0.34,1.56,0.64,1)" }}>✓</div>
-      <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 700, fontSize: 34, color: "var(--sup-teal)", lineHeight: 1.15, marginTop: 16 }}>
+      <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 700, fontSize: 32, color: "var(--sup-teal)", lineHeight: 1.15, marginTop: 16 }}>
         {joinHost ? `ร่วมทริปกับ ${joinHost} แล้ว!` : "เจอกันที่แม่กลอง!"}
       </div>
-      <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 16, color: "var(--fg-2)", maxWidth: 420, margin: "12px auto 8px" }}>
-        ขอบคุณ {name || "คุณ"} · {paddlers} บอร์ดสำหรับเส้นทาง{" "}
-        <strong style={{ color: "var(--fg-1)", fontWeight: 500 }}>{route.name}</strong>{" "}
-        · {timeSlot.label}วัน {date} · ถ่ายภาพ: {photoLabel}
-        {" "}· ทีมเราจะติดต่อใน LINE ภายใน 1 ชั่วโมง
+
+      {/* Booking reference */}
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, padding: "8px 18px", background: "var(--sand-50)", borderRadius: 999, border: "1px solid var(--border-2)" }}>
+        <span style={{ fontFamily: "var(--font-kanit)", fontSize: 12, color: "var(--fg-3)" }}>หมายเลขจอง</span>
+        <span style={{ fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 16, color: "var(--fg-1)", letterSpacing: "0.08em" }}>#{refId}</span>
+      </div>
+
+      <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 15, color: "var(--fg-2)", maxWidth: 420, margin: "14px auto 8px", lineHeight: 1.6 }}>
+        ขอบคุณ <strong style={{ color: "var(--fg-1)", fontWeight: 500 }}>{name || "คุณ"}</strong> · {paddlers} บอร์ด
+        {" "}เส้นทาง<strong style={{ color: "var(--fg-1)", fontWeight: 500 }}>{route.name}</strong>
+        {" "}· {timeSlot.label} {date} · ถ่ายภาพ: {photoLabel}
       </p>
-      <div style={{ fontFamily: "var(--font-inter)", fontSize: 22, fontWeight: 700, color: "var(--fg-1)", margin: "8px 0 22px" }}>฿{total.toLocaleString()}</div>
+      <div style={{ padding: "10px 16px", background: "var(--teal-50)", borderRadius: 10, fontSize: 13, color: "var(--teal-700)", fontWeight: 400, margin: "0 auto 18px", maxWidth: 380 }}>
+        ทีมเราจะติดต่อยืนยันผ่าน LINE ภายใน 1 ชั่วโมง 🎉
+      </div>
+
+      <div style={{ fontFamily: "var(--font-inter)", fontSize: 24, fontWeight: 700, color: "var(--fg-1)", marginBottom: 20 }}>฿{total.toLocaleString()}</div>
       <button onClick={onReset} className="btn btn-secondary">{joinHost ? "ร่วมทริปอื่น" : "จองอีก"}</button>
     </div>
   );
@@ -396,7 +391,11 @@ function ConfirmedState({ date, timeSlot, route, paddlers, name, photoPermission
 
 // ─── Main widget ──────────────────────────────────────────────────────────────
 
-const cardStyle: React.CSSProperties = { background: "#fff", borderRadius: 16, padding: 26, boxShadow: "var(--shadow-xl)", border: "1px solid var(--border-1)", width: "100%", maxWidth: 540, position: "relative", fontFamily: "var(--font-kanit)" };
+const cardStyle: React.CSSProperties = {
+  background: "#fff", borderRadius: 16, padding: 26, boxShadow: "var(--shadow-xl)",
+  border: "1px solid var(--border-1)", width: "100%", maxWidth: 540,
+  position: "relative", fontFamily: "var(--font-kanit)",
+};
 
 interface BookingWidgetProps {
   joinTrip?: UpcomingTrip | null;
@@ -405,13 +404,14 @@ interface BookingWidgetProps {
 
 export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: BookingWidgetProps) {
   // Availability
-  const [availability, setAvailability]     = useState<AvailDay[]>([]);
-  const [availLoading, setAvailLoading]     = useState(true);
-  const [weekOffset, setWeekOffset]         = useState(0);
+  const [availability, setAvailability] = useState<AvailDay[]>([]);
+  const [availLoading, setAvailLoading] = useState(true);
+  const [weekOffset, setWeekOffset]     = useState(0);
 
-  // Booking state
-  const [dateIso, setDateIso]               = useState(""); // ISO for availability lookup
-  const [date, setDate]                     = useState(""); // Thai label for display & booking
+  // Pre-select today immediately (updated to first available day after load)
+  const [dateIso, setDateIso] = useState(() => toIso(new Date()));
+  const [date, setDate]       = useState(() => isoToLabel(toIso(new Date())));
+
   const [timeSlot, setTimeSlot]             = useState<TimeSlotId>("MORNING");
   const [route, setRoute]                   = useState("phoprak");
   const [routeCat, setRouteCat]             = useState<RouteCategory>("short");
@@ -426,6 +426,11 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const [step, setStep]                     = useState(0);
   const [confirmed, setConfirmed]           = useState(false);
   const [submitting, setSubmitting]         = useState(false);
+  const [bookingId, setBookingId]           = useState("");
+
+  // Validation
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string }>({});
+  const [submitError, setSubmitError] = useState("");
 
   // Load availability on mount
   useEffect(() => {
@@ -442,11 +447,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
           }
         }
       })
-      .catch(() => {
-        const iso = toIso(new Date());
-        setDateIso(iso);
-        setDate(isoToLabel(iso));
-      })
+      .catch(() => {}) // keep today's date already set
       .finally(() => setAvailLoading(false));
   }, []);
 
@@ -481,7 +482,17 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const next = () => setStep((s) => Math.min(s + 1, 4));
   const prev = () => setStep((s) => Math.max(s - 1, isJoin ? 3 : 0));
 
+  const validate = () => {
+    const errs: { name?: string; phone?: string } = {};
+    if (!name.trim()) errs.name = "กรุณากรอกชื่อผู้จอง";
+    if (!phone.trim()) errs.phone = "กรุณากรอกเบอร์โทรหรือ LINE ID";
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSubmit = async () => {
+    if (!validate()) return;
+    setSubmitError("");
     setSubmitting(true);
     const result = await createBooking({
       date, timeSlot, routeId: route,
@@ -492,15 +503,20 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
       notes: notes || undefined,
     });
     setSubmitting(false);
-    if (result.ok) setConfirmed(true);
+    if (result.ok) {
+      setBookingId(result.id ?? "");
+      setConfirmed(true);
+    } else {
+      setSubmitError(result.error ?? "เกิดข้อผิดพลาด กรุณาลองใหม่");
+    }
   };
 
-  const handleReset = () => { setConfirmed(false); setStep(0); onClearJoin?.(); };
+  const handleReset = () => { setConfirmed(false); setStep(0); setFieldErrors({}); setSubmitError(""); onClearJoin?.(); };
 
   if (confirmed) {
     return (
       <div id="book" style={cardStyle}>
-        <ConfirmedState date={date} timeSlot={selectedTimeSlot} route={selectedRoute} paddlers={paddlers} name={name} photoPermission={photoPermission} total={total} joinHost={joinTripProp?.host ?? null} onReset={handleReset} />
+        <ConfirmedState date={date} timeSlot={selectedTimeSlot} route={selectedRoute} paddlers={paddlers} name={name} photoPermission={photoPermission} total={total} bookingId={bookingId} joinHost={joinTripProp?.host ?? null} onReset={handleReset} />
       </div>
     );
   }
@@ -557,19 +573,27 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
         {step === 3 && <StepPaddlers paddlers={paddlers} setPaddlers={setPaddlers} skill={skill} setSkill={setSkill} weight={weight} setWeight={setWeight} />}
         {step === 4 && (
           <StepContact
-            name={name} setName={setName}
-            phone={phone} setPhone={setPhone}
+            name={name} setName={(v) => { setName(v); setFieldErrors((e) => ({ ...e, name: undefined })); }}
+            phone={phone} setPhone={(v) => { setPhone(v); setFieldErrors((e) => ({ ...e, phone: undefined })); }}
             pickupAddress={pickupAddress} setPickupAddress={setPickupAddress}
             notes={notes} setNotes={setNotes}
             photoPermission={photoPermission} setPhotoPermission={setPhotoPermission}
             paddlers={paddlers}
+            fieldErrors={fieldErrors}
             summary={{ date, timeSlot: selectedTimeSlot, route: selectedRoute, paddlers, skill, photoPermission, baseTotal, photoTotal, total }}
           />
         )}
       </div>
 
+      {/* Submit error */}
+      {submitError && (
+        <div style={{ margin: "12px 0 0", padding: "10px 14px", background: "#FFF1F0", borderRadius: 8, fontSize: 13, color: "var(--danger)", fontWeight: 500 }}>
+          ⚠ {submitError}
+        </div>
+      )}
+
       {/* Navigation */}
-      <div style={{ marginTop: 18, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <button onClick={prev} disabled={step === 0 || (isJoin && step <= 3)} className="btn btn-ghost" style={{ opacity: step === 0 || (isJoin && step <= 3) ? 0.35 : 1 }}>← ย้อน</button>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           {step >= 2 && (
