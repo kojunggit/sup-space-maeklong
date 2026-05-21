@@ -39,6 +39,16 @@ const PHOTO_OPTIONS: { id: PhotoPermission; label: string; sub: string; badge?: 
   { id: "private",  label: "Private",   sub: "ได้ภาพส่วนตัว · ไม่เผยแพร่ใน Social", badge: `+฿${PRIVATE_PHOTO_PRICE}/คน` },
 ];
 
+// ─── Contact channel ──────────────────────────────────────────────────────────
+
+type ContactChannel = "line" | "whatsapp" | "messenger";
+
+const CONTACT_CHANNELS: { id: ContactChannel; label: string; icon: string; placeholder: string }[] = [
+  { id: "line",      label: "LINE",      icon: "💬", placeholder: "LINE ID หรือ @username" },
+  { id: "whatsapp",  label: "WhatsApp",  icon: "📲", placeholder: "เบอร์โทร WhatsApp" },
+  { id: "messenger", label: "Messenger", icon: "🗨️",  placeholder: "ชื่อ Facebook / username" },
+];
+
 // ─── Shared sub-components ────────────────────────────────────────────────────
 
 function Label({ children }: { children: React.ReactNode }) {
@@ -259,9 +269,11 @@ const inputStyle: React.CSSProperties = {
 };
 const inputErrorStyle: React.CSSProperties = { ...inputStyle, borderColor: "var(--danger)" };
 
-function StepContact({ name, setName, phone, setPhone, pickupAddress, setPickupAddress, notes, setNotes, photoPermission, setPhotoPermission, paddlers, summary, fieldErrors }: {
+function StepContact({ name, setName, phone, setPhone, contactChannel, setContactChannel, contactId, setContactId, pickupAddress, setPickupAddress, notes, setNotes, photoPermission, setPhotoPermission, paddlers, summary, fieldErrors }: {
   name: string; setName: (s: string) => void;
   phone: string; setPhone: (s: string) => void;
+  contactChannel: ContactChannel; setContactChannel: (c: ContactChannel) => void;
+  contactId: string; setContactId: (s: string) => void;
   pickupAddress: string; setPickupAddress: (s: string) => void;
   notes: string; setNotes: (s: string) => void;
   photoPermission: PhotoPermission; setPhotoPermission: (p: PhotoPermission) => void;
@@ -286,11 +298,42 @@ function StepContact({ name, setName, phone, setPhone, pickupAddress, setPickupA
 
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 500, color: fieldErrors.phone ? "var(--danger)" : "var(--fg-2)" }}>
-          เบอร์โทร หรือ LINE ID <span style={{ color: "var(--danger)" }}>*</span>
+          เบอร์โทร <span style={{ color: "var(--danger)" }}>*</span>
         </span>
         <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="083 714 6958" style={fieldErrors.phone ? inputErrorStyle : inputStyle} />
         {fieldErrors.phone && <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 500 }}>⚠ {fieldErrors.phone}</span>}
       </label>
+
+      {/* Contact channel */}
+      <div style={{ display: "grid", gap: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)" }}>
+          ช่องทางติดต่อ <span style={{ fontWeight: 300, color: "var(--fg-4)" }}>(ไม่บังคับ)</span>
+        </span>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+          {CONTACT_CHANNELS.map((ch) => {
+            const sel = contactChannel === ch.id;
+            return (
+              <button key={ch.id} onClick={() => setContactChannel(ch.id)}
+                style={{
+                  padding: "10px 6px", borderRadius: 10, cursor: "pointer",
+                  border: sel ? "2px solid var(--sup-teal)" : "1.5px solid var(--border-2)",
+                  background: sel ? "var(--teal-50)" : "#fff",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                  fontFamily: "var(--font-kanit)", transition: "all 180ms var(--ease-out)",
+                }}>
+                <span style={{ fontSize: 18 }}>{ch.icon}</span>
+                <span style={{ fontSize: 12, fontWeight: sel ? 700 : 500, color: sel ? "var(--sup-teal)" : "var(--fg-2)", whiteSpace: "nowrap" }}>{ch.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <input
+          value={contactId}
+          onChange={(e) => setContactId(e.target.value)}
+          placeholder={CONTACT_CHANNELS.find((c) => c.id === contactChannel)?.placeholder ?? ""}
+          style={inputStyle}
+        />
+      </div>
 
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)" }}>
@@ -427,6 +470,8 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const [confirmed, setConfirmed]           = useState(false);
   const [submitting, setSubmitting]         = useState(false);
   const [bookingId, setBookingId]           = useState("");
+  const [contactChannel, setContactChannel] = useState<ContactChannel>("line");
+  const [contactId, setContactId]           = useState("");
 
   // Validation
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string }>({});
@@ -500,6 +545,8 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
       paddlers, weight, skillLevel: skill,
       photoPermission, total,
       guestName: name, guestPhone: phone,
+      contactChannel: contactId ? contactChannel : undefined,
+      contactId: contactId || undefined,
       pickupAddress: pickupAddress || undefined,
       notes: notes || undefined,
     });
@@ -512,7 +559,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
     }
   };
 
-  const handleReset = () => { setConfirmed(false); setStep(0); setFieldErrors({}); setSubmitError(""); onClearJoin?.(); };
+  const handleReset = () => { setConfirmed(false); setStep(0); setFieldErrors({}); setSubmitError(""); setContactChannel("line"); setContactId(""); onClearJoin?.(); };
 
   if (confirmed) {
     return (
@@ -576,6 +623,8 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
           <StepContact
             name={name} setName={(v) => { setName(v); setFieldErrors((e) => ({ ...e, name: undefined })); }}
             phone={phone} setPhone={(v) => { setPhone(v); setFieldErrors((e) => ({ ...e, phone: undefined })); }}
+            contactChannel={contactChannel} setContactChannel={setContactChannel}
+            contactId={contactId} setContactId={setContactId}
             pickupAddress={pickupAddress} setPickupAddress={setPickupAddress}
             notes={notes} setNotes={setNotes}
             photoPermission={photoPermission} setPhotoPermission={setPhotoPermission}

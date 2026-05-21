@@ -25,6 +25,8 @@ export interface BookingPayload {
   total: number;
   guestName: string;
   guestPhone: string;
+  contactChannel?: string;
+  contactId?: string;
   pickupAddress?: string;
   notes?: string;
 }
@@ -50,9 +52,11 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
         hasPhoto:        payload.photoPermission !== "notAllow",
         photoPermission: payload.photoPermission,
         total:           payload.total,
-        guestName:       payload.guestName  || null,
-        guestPhone:      payload.guestPhone || null,
-        pickupAddress:   payload.pickupAddress || null,
+        guestName:       payload.guestName        || null,
+        guestPhone:      payload.guestPhone       || null,
+        contactChannel:  payload.contactChannel   || null,
+        contactId:       payload.contactId        || null,
+        pickupAddress:   payload.pickupAddress    || null,
         notes:           payload.notes || null,
         status:          "PENDING",
       },
@@ -70,6 +74,7 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
 export interface BookingRecord {
   id: string;
   date: string;
+  dateIso: string | null;
   timeSlot: string;
   routeId: string | null;
   paddlers: number;
@@ -79,6 +84,8 @@ export interface BookingRecord {
   photoPermission: string;
   guestName: string | null;
   guestPhone: string | null;
+  contactChannel: string | null;
+  contactId: string | null;
   pickupAddress: string | null;
   notes: string | null;
   total: number | null;

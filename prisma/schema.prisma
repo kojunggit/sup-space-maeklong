@@ -26,6 +26,8 @@ model Booking {
   user            User?    @relation(fields: [userId], references: [id])
   guestName       String?
   guestPhone      String?
+  contactChannel  String?  // line | whatsapp | messenger
+  contactId       String?  // ID/username on that platform
   date            String
   dateIso         String?  // ISO "2026-05-23" — used for filtering/sorting upcoming trips
   timeSlot        String
