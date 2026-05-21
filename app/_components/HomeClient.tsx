@@ -11,6 +11,10 @@ import Gallery from "./Gallery";
 import Footer from "./Footer";
 import { type UpcomingTrip } from "./trips-data";
 
+interface HomeClientProps {
+  initialTrips: UpcomingTrip[];
+}
+
 function scrollToId(id: string, block: "start" | "center" = "start") {
   const el = document.getElementById(id);
   if (!el) return;
@@ -22,7 +26,7 @@ function scrollToId(id: string, block: "start" | "center" = "start") {
   window.scrollTo({ top: Math.max(0, offset), behavior: "smooth" });
 }
 
-export default function HomeClient() {
+export default function HomeClient({ initialTrips }: HomeClientProps) {
   const [joinTrip, setJoinTrip] = useState<UpcomingTrip | null>(null);
 
   const onBookClick = useCallback(() => scrollToId("book", "center"), []);
@@ -54,7 +58,7 @@ export default function HomeClient() {
       <Hero onBookClick={onBookClick} />
       <BookingSection joinTrip={joinTrip} onClearJoin={clearJoin} />
       <Services />
-      <UpcomingTrips onJoin={handleJoin} />
+      <UpcomingTrips trips={initialTrips} onJoin={handleJoin} />
       <div aria-hidden="true" style={{ padding: "40px 0", display: "flex", justifyContent: "center" }}>
         <img src="/wave-divider.svg" alt="" style={{ width: "60%", maxWidth: 700, height: 60 }} />
       </div>

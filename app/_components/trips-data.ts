@@ -14,9 +14,9 @@ export interface Route {
 
 export interface UpcomingTrip {
   id: string;
-  date: string;
-  dateKey: string;
-  day: string;
+  date: string;        // Thai display "ส. 23 พ.ค."
+  dateKey: string;     // ISO date "2026-05-23" — used to pre-fill the booking widget
+  day: string;         // Full Thai day name "เสาร์"
   timeSlot: TimeSlotId;
   routeId: string;
   joined: number;
@@ -93,12 +93,12 @@ export const DATES: DateOption[] = [
 ];
 
 export const UPCOMING_TRIPS: UpcomingTrip[] = [
-  { id: "t-001", date: "ส. 23 พ.ค.",  dateKey: "sat-23",  day: "เสาร์",   timeSlot: "MORNING",   routeId: "phoprak",     joined: 3, max: 8, host: "มะลิ" },
-  { id: "t-002", date: "อา. 24 พ.ค.", dateKey: "sun-24",  day: "อาทิตย์", timeSlot: "MORNING",   routeId: "damnoen",     joined: 5, max: 8, host: "Alex" },
-  { id: "t-003", date: "อา. 24 พ.ค.", dateKey: "sun-24",  day: "อาทิตย์", timeSlot: "AFTERNOON", routeId: "prokcharoen", joined: 2, max: 8, host: "พลอย" },
-  { id: "t-004", date: "ส. 30 พ.ค.",  dateKey: "sat-30",  day: "เสาร์",   timeSlot: "MORNING",   routeId: "three-mkts",  joined: 6, max: 8, host: "แก๊งวิ่ง" },
-  { id: "t-005", date: "อา. 31 พ.ค.", dateKey: "sun-31",  day: "อาทิตย์", timeSlot: "AFTERNOON", routeId: "pakhiao",     joined: 8, max: 8, host: "นิว" },
-  { id: "t-006", date: "ส. 6 มิ.ย.",  dateKey: "sat-6jun",day: "เสาร์",   timeSlot: "MORNING",   routeId: "thaka",       joined: 1, max: 8, host: "June" },
+  { id: "t-001", date: "ส. 23 พ.ค.",  dateKey: "2026-05-23", day: "เสาร์",   timeSlot: "MORNING",   routeId: "phoprak",     joined: 3, max: 8, host: "มะลิ" },
+  { id: "t-002", date: "อา. 24 พ.ค.", dateKey: "2026-05-24", day: "อาทิตย์", timeSlot: "MORNING",   routeId: "damnoen",     joined: 5, max: 8, host: "Alex" },
+  { id: "t-003", date: "อา. 24 พ.ค.", dateKey: "2026-05-24", day: "อาทิตย์", timeSlot: "AFTERNOON", routeId: "prokcharoen", joined: 2, max: 8, host: "พลอย" },
+  { id: "t-004", date: "ส. 30 พ.ค.",  dateKey: "2026-05-30", day: "เสาร์",   timeSlot: "MORNING",   routeId: "three-mkts",  joined: 6, max: 8, host: "แก๊งวิ่ง" },
+  { id: "t-005", date: "อา. 31 พ.ค.", dateKey: "2026-05-31", day: "อาทิตย์", timeSlot: "AFTERNOON", routeId: "pakhiao",     joined: 8, max: 8, host: "นิว" },
+  { id: "t-006", date: "ส. 6 มิ.ย.",  dateKey: "2026-06-06", day: "เสาร์",   timeSlot: "MORNING",   routeId: "thaka",       joined: 1, max: 8, host: "June" },
 ];
 
 export const PRIVATE_PHOTO_PRICE = 500;

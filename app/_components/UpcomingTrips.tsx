@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { UPCOMING_TRIPS, ROUTES_BY_ID, type UpcomingTrip } from "./trips-data";
+import { ROUTES_BY_ID, type UpcomingTrip } from "./trips-data";
 
 interface UpcomingTripsProps {
+  trips: UpcomingTrip[];
   onJoin: (trip: UpcomingTrip) => void;
 }
 
@@ -89,7 +90,7 @@ function TripCard({ trip, onJoin }: { trip: UpcomingTrip; onJoin: () => void }) 
   );
 }
 
-export default function UpcomingTrips({ onJoin }: UpcomingTripsProps) {
+export default function UpcomingTrips({ trips, onJoin }: UpcomingTripsProps) {
   return (
     <section id="trips" style={{ background: "var(--sand-50)" }} className="section-pad">
       <div className="container">
@@ -105,9 +106,24 @@ export default function UpcomingTrips({ onJoin }: UpcomingTripsProps) {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 14 }}>
-          {UPCOMING_TRIPS.map((t) => (
-            <TripCard key={t.id} trip={t} onJoin={() => onJoin(t)} />
-          ))}
+          {trips.length === 0 ? (
+            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "48px 24px" }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🛶</div>
+              <div style={{ fontFamily: "var(--font-kanit)", fontSize: 18, fontWeight: 500, color: "var(--fg-2)", marginBottom: 8 }}>
+                ยังไม่มีทริปที่กำลังจะมา
+              </div>
+              <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 14, color: "var(--fg-3)", marginBottom: 24, lineHeight: 1.6 }}>
+                จองก่อนเป็นคนแรก แล้วให้เพื่อนๆ กดร่วมทริปมาด้วยกัน!
+              </div>
+              <a href="#book" className="btn btn-primary" style={{ padding: "12px 24px", fontSize: 14 }}>
+                จองทริปใหม่ →
+              </a>
+            </div>
+          ) : (
+            trips.map((t) => (
+              <TripCard key={t.id} trip={t} onJoin={() => onJoin(t)} />
+            ))
+          )}
         </div>
       </div>
     </section>

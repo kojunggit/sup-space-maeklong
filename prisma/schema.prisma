@@ -22,6 +22,7 @@ model Booking {
   guestName       String?
   guestPhone      String?
   date            String
+  dateIso         String?  // ISO "2026-05-23" — used for filtering/sorting upcoming trips
   timeSlot        String
   routeId         String?
   paddlers        Int      @default(1)

@@ -3,6 +3,7 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { revalidatePath } from "next/cache";
+import type { UpcomingTrip } from "@/app/_components/trips-data";
 
 // PrismaPg in Prisma 7 accepts a connection string directly (string | Pool | PoolConfig)
 function getPrisma() {
@@ -14,6 +15,7 @@ function getPrisma() {
 
 export interface BookingPayload {
   date: string;
+  dateIso?: string;  // ISO "2026-05-23" — for filtering upcoming trips
   timeSlot: string;
   routeId: string;
   paddlers: number;
@@ -39,6 +41,7 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
     const booking = await prisma.booking.create({
       data: {
         date:            payload.date,
+        dateIso:         payload.dateIso || null,
         timeSlot:        payload.timeSlot,
         routeId:         payload.routeId,
         paddlers:        payload.paddlers,
@@ -95,6 +98,58 @@ export async function getBookings(status?: string): Promise<BookingRecord[]> {
     }));
   } catch (err) {
     console.error("getBookings error:", err);
+    return [];
+  }
+}
+
+// ─── Public: upcoming trips ───────────────────────────────────────────────────
+
+const THAI_DAYS_FULL  = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+const THAI_DAYS_SHORT = ["อา", "จ.", "อ.", "พ.", "พฤ", "ศ.", "ส."];
+const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+export async function getUpcomingTrips(): Promise<UpcomingTrip[]> {
+  const prisma = getPrisma();
+  const todayIso = new Date().toISOString().slice(0, 10);
+  try {
+    const rows = await prisma.booking.findMany({
+      where: {
+        status: { not: "CANCELLED" },
+        dateIso: { gte: todayIso },
+      },
+      orderBy: [{ dateIso: "asc" }, { timeSlot: "asc" }],
+    });
+
+    // Group bookings by (dateIso | timeSlot | routeId)
+    const groups = new Map<string, (typeof rows)[number][]>();
+    for (const row of rows) {
+      if (!row.dateIso || !row.routeId) continue;
+      const key = `${row.dateIso}|${row.timeSlot}|${row.routeId}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(row);
+    }
+
+    const trips: UpcomingTrip[] = [];
+    for (const [, bookings] of groups) {
+      const first = bookings[0];
+      const d = new Date(first.dateIso! + "T00:00:00");
+      const joined = bookings.reduce((sum, b) => sum + b.paddlers, 0);
+      trips.push({
+        id:       `${first.dateIso}|${first.timeSlot}|${first.routeId}`,
+        date:     `${THAI_DAYS_SHORT[d.getDay()]} ${d.getDate()} ${THAI_MONTHS_SHORT[d.getMonth()]}`,
+        dateKey:  first.dateIso!,
+        day:      THAI_DAYS_FULL[d.getDay()],
+        timeSlot: first.timeSlot as "MORNING" | "AFTERNOON",
+        routeId:  first.routeId!,
+        joined:   Math.min(joined, 8),
+        max:      8,
+        host:     first.guestName ?? "ลูกค้า",
+      });
+    }
+
+    return trips;
+  } catch (err) {
+    console.error("getUpcomingTrips error:", err);
     return [];
   }
 }

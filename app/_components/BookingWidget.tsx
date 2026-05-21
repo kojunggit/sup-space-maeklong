@@ -455,6 +455,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   useEffect(() => {
     if (!joinTripProp) return;
     setDate(joinTripProp.date);
+    setDateIso(joinTripProp.dateKey);  // dateKey holds the ISO date "2026-05-23"
     setTimeSlot(joinTripProp.timeSlot);
     setRoute(joinTripProp.routeId);
     const r = ROUTES.find((x) => x.id === joinTripProp.routeId);
@@ -495,7 +496,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
     setSubmitError("");
     setSubmitting(true);
     const result = await createBooking({
-      date, timeSlot, routeId: route,
+      date, dateIso, timeSlot, routeId: route,
       paddlers, weight, skillLevel: skill,
       photoPermission, total,
       guestName: name, guestPhone: phone,
