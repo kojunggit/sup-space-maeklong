@@ -22,7 +22,12 @@ function PackageBadge({ title, price, hint, highlight }: { title: string; price:
   );
 }
 
-function ServiceCard({ eyebrow, title, desc, bullets, accent, img, badge }: (typeof SERVICES)[number]) {
+interface ServiceCardProps {
+  eyebrow: string; title: string; desc: string;
+  bullets: readonly string[]; accent: string; img: string; badge?: string;
+}
+
+function ServiceCard({ eyebrow, title, desc, bullets, accent, img, badge }: ServiceCardProps) {
   const [hover, setHover] = useState(false);
   return (
     <div
