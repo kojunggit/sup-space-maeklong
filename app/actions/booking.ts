@@ -2,10 +2,12 @@
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import { revalidatePath } from "next/cache";
 
 function getPrisma() {
-  const adapter = new PrismaPg({ connectionString: process.env.POSTGRES_PRISMA_URL! });
+  const pool = new Pool({ connectionString: process.env.POSTGRES_PRISMA_URL });
+  const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });
 }
 
