@@ -1,8 +1,12 @@
 "use server";
 
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const prisma = new PrismaClient();
+function getPrisma() {
+  const adapter = new PrismaPg({ connectionString: process.env.POSTGRES_PRISMA_URL! });
+  return new PrismaClient({ adapter });
+}
 
 export interface BookingPayload {
   date: string;
@@ -26,6 +30,7 @@ export interface BookingResult {
 }
 
 export async function createBooking(payload: BookingPayload): Promise<BookingResult> {
+  const prisma = getPrisma();
   try {
     const booking = await prisma.booking.create({
       data: {
