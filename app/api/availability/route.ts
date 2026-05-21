@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { TIME_SLOTS } from "@/app/_components/trips-data";
 
 function getPrisma() {
   const adapter = new PrismaPg(process.env.PRISMA_DATABASE_URL!);
@@ -16,7 +17,8 @@ function allAvailable(days = 14) {
   today.setHours(0, 0, 0, 0);
   return Array.from({ length: days }, (_, i) => {
     const d = new Date(today.getTime() + i * 86_400_000);
-    return { date: toIso(d), morning: true, afternoon: true, available: true };
+    const hours = Object.fromEntries(TIME_SLOTS.map((h) => [h, true]));
+    return { date: toIso(d), hours, available: true };
   });
 }
 
@@ -34,16 +36,22 @@ export async function GET() {
     const settingRow = await prisma.setting.findUnique({ where: { key: "maxBoards" } }).catch(() => null);
     const maxBoards  = settingRow ? (parseInt(settingRow.value, 10) || 8) : 8;
 
-    // Sum confirmed paddlers per (dateIso, timeSlot)
+    // Read closed slots from settings
+    const closedRow  = await prisma.setting.findUnique({ where: { key: "closedSlots" } }).catch(() => null);
+    const closedSlots: Array<{ date: string; hour?: string }> = closedRow
+      ? (JSON.parse(closedRow.value) as Array<{ date: string; hour?: string }>)
+      : [];
+
+    // Sum confirmed+pending paddlers per (dateIso, timeSlot) — one hour slot per booking
     const rows = await prisma.booking.findMany({
       where: {
-        status:  "CONFIRMED",
+        status:  { in: ["CONFIRMED", "PENDING"] },
         dateIso: { gte: todayIso, lt: limitIso },
       },
       select: { dateIso: true, timeSlot: true, paddlers: true },
     });
 
-    // Build a map: "2026-05-23|MORNING" → total boards booked
+    // Map: "2026-05-23|09:00" → total boards booked
     const totals = new Map<string, number>();
     for (const r of rows) {
       if (!r.dateIso) continue;
@@ -52,11 +60,25 @@ export async function GET() {
     }
 
     const result = Array.from({ length: 14 }, (_, i) => {
-      const d = new Date(today.getTime() + i * 86_400_000);
+      const d   = new Date(today.getTime() + i * 86_400_000);
       const iso = toIso(d);
-      const morning   = (totals.get(`${iso}|MORNING`)   ?? 0) < maxBoards;
-      const afternoon = (totals.get(`${iso}|AFTERNOON`) ?? 0) < maxBoards;
-      return { date: iso, morning, afternoon, available: morning || afternoon };
+
+      // Is the whole day closed?
+      const isDayClosed = closedSlots.some((s) => s.date === iso && !s.hour);
+
+      const hours: Record<string, boolean> = {};
+      for (const h of TIME_SLOTS) {
+        if (isDayClosed) {
+          hours[h] = false;
+        } else {
+          const isHourClosed = closedSlots.some((s) => s.date === iso && s.hour === h);
+          const booked       = totals.get(`${iso}|${h}`) ?? 0;
+          hours[h]           = !isHourClosed && booked < maxBoards;
+        }
+      }
+
+      const available = Object.values(hours).some(Boolean);
+      return { date: iso, hours, available };
     });
 
     return NextResponse.json(result, {

@@ -40,6 +40,36 @@ export interface BookingResult {
 export async function createBooking(payload: BookingPayload): Promise<BookingResult> {
   const prisma = getPrisma();
   try {
+    // ── Guard 1: no duplicate (same phone + date + time, not cancelled) ─────
+    if (payload.guestPhone && payload.dateIso) {
+      const existing = await prisma.booking.findFirst({
+        where: {
+          guestPhone: payload.guestPhone,
+          dateIso:    payload.dateIso,
+          timeSlot:   payload.timeSlot,
+          status:     { not: "CANCELLED" },
+        },
+        select: { id: true },
+      });
+      if (existing) {
+        return { ok: false, error: "คุณมีการจองในวันและเวลานี้อยู่แล้ว กรุณาตรวจสอบการจองของคุณ" };
+      }
+    }
+
+    // ── Guard 2: slot not in closed list ────────────────────────────────────
+    if (payload.dateIso) {
+      const closedRow = await prisma.setting.findUnique({ where: { key: "closedSlots" } }).catch(() => null);
+      if (closedRow) {
+        const closed = JSON.parse(closedRow.value) as Array<{ date: string; hour?: string }>;
+        const blocked = closed.some(
+          (s) => s.date === payload.dateIso && (!s.hour || s.hour === payload.timeSlot),
+        );
+        if (blocked) {
+          return { ok: false, error: "วันและเวลานี้ปิดให้บริการ กรุณาเลือกวันหรือเวลาอื่น" };
+        }
+      }
+    }
+
     const booking = await prisma.booking.create({
       data: {
         date:            payload.date,

@@ -12,8 +12,18 @@ function TripCard({ trip, onJoin }: { trip: UpcomingTrip; onJoin: () => void }) 
   const [hover, setHover] = useState(false);
   const route = ROUTES_BY_ID[trip.routeId];
   const full = trip.joined >= trip.max;
-  const timeLabel = trip.timeSlot === "MORNING" ? "เช้า" : "บ่าย";
-  const timeRange = trip.timeSlot === "MORNING" ? "07:00 – 11:00" : "13:00 – 17:00";
+  // Handle both legacy ("MORNING"/"AFTERNOON") and new hourly ("09:00") slots
+  const isLegacy  = trip.timeSlot === "MORNING" || trip.timeSlot === "AFTERNOON";
+  const timeLabel =
+    trip.timeSlot === "MORNING"   ? "เช้า" :
+    trip.timeSlot === "AFTERNOON" ? "บ่าย" :
+    `${trip.timeSlot} น.`;
+  const timeRange =
+    trip.timeSlot === "MORNING"   ? "07:00 – 11:00" :
+    trip.timeSlot === "AFTERNOON" ? "13:00 – 17:00" :
+    trip.timeSlot;
+  // Display: "รอบเช้า" for legacy, just "09:00 น." for hourly
+  const timeDisplay = isLegacy ? `รอบ${timeLabel}` : timeLabel;
   const seatPct = (trip.joined / trip.max) * 100;
 
   return (
@@ -44,7 +54,7 @@ function TripCard({ trip, onJoin }: { trip: UpcomingTrip; onJoin: () => void }) 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 500, fontSize: 15, color: "var(--fg-1)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{trip.date}</div>
           <div style={{ fontFamily: "var(--font-inter)", fontSize: 12, color: "var(--fg-2)", marginTop: 2, whiteSpace: "nowrap" }}>
-            <span style={{ fontFamily: "var(--font-kanit)", fontWeight: 500 }}>รอบ{timeLabel}</span> · {timeRange}
+            <span style={{ fontFamily: "var(--font-kanit)", fontWeight: 500 }}>{timeDisplay}</span> · {timeRange}
           </div>
         </div>
       </div>

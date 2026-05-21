@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import {
-  TIMESLOTS, ROUTES, CATEGORIES, SKILLS, ROUTES_BY_ID,
-  PRIVATE_PHOTO_PRICE,
-  type UpcomingTrip, type RouteCategory, type TimeSlotId, type SkillLevel,
+  ROUTES, CATEGORIES, SKILLS, ROUTES_BY_ID,
+  PRIVATE_PHOTO_PRICE, TIME_SLOTS,
+  type UpcomingTrip, type RouteCategory, type SkillLevel,
 } from "./trips-data";
 import { createBooking } from "../actions/booking";
 
@@ -28,9 +28,16 @@ function generateDays(count = 14) {
   });
 }
 
+/** Format a raw timeSlot for display in confirmed state / summary */
+function formatTime(slot: string): string {
+  if (slot === "MORNING")   return "รอบเช้า";
+  if (slot === "AFTERNOON") return "รอบบ่าย";
+  return `${slot} น.`;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface AvailDay { date: string; morning: boolean; afternoon: boolean; available: boolean; }
+interface AvailDay { date: string; hours: Record<string, boolean>; available: boolean; }
 type PhotoPermission = "allow" | "notAllow" | "private";
 
 const PHOTO_OPTIONS: { id: PhotoPermission; label: string; sub: string; badge?: string }[] = [
@@ -120,7 +127,7 @@ function StepWhen({ dateIso, onSelect, availability, loading, weekOffset, setWee
       </div>
       <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--teal-50)", borderRadius: 8, fontSize: 13, color: "var(--teal-700)", display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ fontWeight: 500, whiteSpace: "nowrap" }}>เคล็ดลับ —</span>
-        <span>{loading ? "กำลังตรวจสอบวันว่าง..." : "จุดเขียว = ยังมีที่ว่าง · จุดแดง = เต็มแล้ว · ยืนยันใน LINE ภายใน 1 ชม."}</span>
+        <span>{loading ? "กำลังตรวจสอบวันว่าง..." : "จุดเขียว = ยังมีที่ว่าง · จุดแดง = เต็มแล้ว"}</span>
       </div>
     </div>
   );
@@ -129,26 +136,39 @@ function StepWhen({ dateIso, onSelect, availability, loading, weekOffset, setWee
 // ─── Step 2: Time ─────────────────────────────────────────────────────────────
 
 function StepTime({ timeSlot, setTimeSlot, availability, dateIso }: {
-  timeSlot: TimeSlotId; setTimeSlot: (t: TimeSlotId) => void;
+  timeSlot: string; setTimeSlot: (t: string) => void;
   availability: AvailDay[]; dateIso: string;
 }) {
   const dayAvail = availability.find((d) => d.date === dateIso);
-  const slotAvail = (id: TimeSlotId) => !dayAvail || (id === "MORNING" ? dayAvail.morning : dayAvail.afternoon);
+
   return (
     <div>
-      <Label>เลือกรอบ</Label>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        {TIMESLOTS.map((t) => {
-          const avail = slotAvail(t.id);
-          const selected = timeSlot === t.id;
+      <Label>เลือกเวลา</Label>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+        {TIME_SLOTS.map((h) => {
+          const avail = !dayAvail || (dayAvail.hours[h] ?? true);
+          const selected = timeSlot === h;
           return (
-            <button key={t.id} onClick={() => avail && setTimeSlot(t.id)} disabled={!avail}
-              style={{ textAlign: "left", padding: "20px 18px", borderRadius: 12, position: "relative", border: selected ? "2px solid var(--sup-orange)" : "1.5px solid var(--border-2)", background: selected ? "#FFF4E5" : (avail ? "#fff" : "var(--slate-100)"), cursor: avail ? "pointer" : "not-allowed", fontFamily: "var(--font-kanit)", opacity: avail ? 1 : 0.5, transition: "all 180ms var(--ease-out)" }}>
-              <div style={{ fontSize: 28, color: selected ? "var(--sup-orange)" : "var(--slate-300)", lineHeight: 1, marginBottom: 8 }}>{t.icon}</div>
-              <div style={{ fontWeight: 700, fontSize: 17, color: "var(--fg-1)", whiteSpace: "nowrap" }}>{t.label}</div>
-              <div style={{ fontFamily: "var(--font-inter)", fontSize: 13, color: "var(--fg-3)", marginTop: 2, whiteSpace: "nowrap" }}>{t.time}</div>
-              <div style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: "var(--fg-4)", marginTop: 2 }}>{t.en}</div>
-              {!avail && <span style={{ position: "absolute", top: 10, right: 10, background: "var(--danger)", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>เต็มแล้ว</span>}
+            <button
+              key={h}
+              onClick={() => avail && setTimeSlot(h)}
+              disabled={!avail}
+              style={{
+                padding: "13px 6px", borderRadius: 10, textAlign: "center", position: "relative",
+                border: selected ? "2px solid var(--sup-orange)" : "1.5px solid var(--border-2)",
+                background: selected ? "#FFF4E5" : (avail ? "#fff" : "var(--slate-100)"),
+                color: selected ? "var(--orange-700)" : (avail ? "var(--fg-1)" : "var(--fg-4)"),
+                cursor: avail ? "pointer" : "not-allowed",
+                opacity: avail ? 1 : 0.5,
+                fontFamily: "var(--font-inter)",
+                fontSize: 14, fontWeight: selected ? 700 : 500,
+                transition: "all 180ms var(--ease-out)",
+              }}
+            >
+              {h}
+              {!avail && (
+                <span style={{ position: "absolute", top: 4, right: 4, width: 6, height: 6, borderRadius: 999, background: "var(--danger)" }} />
+              )}
             </button>
           );
         })}
@@ -279,7 +299,17 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
   photoPermission: PhotoPermission; setPhotoPermission: (p: PhotoPermission) => void;
   paddlers: number;
   fieldErrors: { name?: string; phone?: string };
-  summary: { date: string; timeSlot: { label: string; time: string }; route: { name: string; price: number }; paddlers: number; skill: SkillLevel; photoPermission: PhotoPermission; baseTotal: number; photoTotal: number; total: number; };
+  summary: {
+    date: string;
+    timeSlot: string;   // "09:00" or "MORNING"/"AFTERNOON" (legacy)
+    route: { name: string; price: number };
+    paddlers: number;
+    skill: SkillLevel;
+    photoPermission: PhotoPermission;
+    baseTotal: number;
+    photoTotal: number;
+    total: number;
+  };
 }) {
   const canPrivate = paddlers >= 2;
   const skillLabel = SKILLS.find((s) => s.id === summary.skill)?.label ?? "";
@@ -380,7 +410,7 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
       <div style={{ background: "var(--sand-50)", borderRadius: 10, padding: 14, border: "1px solid var(--border-1)" }}>
         <div style={{ fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 600, color: "var(--sup-teal)", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 6 }}>สรุปการจอง</div>
         <Row k="วันที่" v={summary.date} />
-        <Row k="รอบ" v={`${summary.timeSlot.label} · ${summary.timeSlot.time.split("–")[0].trim()}`} />
+        <Row k="เวลา" v={formatTime(summary.timeSlot)} />
         <Row k="เส้นทาง" v={summary.route.name} />
         <Row k="ผู้พาย" v={`${summary.paddlers} บอร์ด · ${skillLabel}`} />
         <Row k="ถ่ายภาพ" v={photoLabel} />
@@ -397,7 +427,7 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
 // ─── Confirmed state ──────────────────────────────────────────────────────────
 
 function ConfirmedState({ date, timeSlot, route, paddlers, name, photoPermission, total, bookingId, joinHost, onReset }: {
-  date: string; timeSlot: { label: string }; route: { name: string };
+  date: string; timeSlot: string; route: { name: string };
   paddlers: number; name: string; photoPermission: PhotoPermission;
   total: number; bookingId: string; joinHost: string | null; onReset: () => void;
 }) {
@@ -420,11 +450,8 @@ function ConfirmedState({ date, timeSlot, route, paddlers, name, photoPermission
       <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 15, color: "var(--fg-2)", maxWidth: 420, margin: "14px auto 8px", lineHeight: 1.6 }}>
         ขอบคุณ <strong style={{ color: "var(--fg-1)", fontWeight: 500 }}>{name || "คุณ"}</strong> · {paddlers} บอร์ด
         {" "}เส้นทาง<strong style={{ color: "var(--fg-1)", fontWeight: 500 }}>{route.name}</strong>
-        {" "}· {timeSlot.label} {date} · ถ่ายภาพ: {photoLabel}
+        {" "}· {formatTime(timeSlot)} {date} · ถ่ายภาพ: {photoLabel}
       </p>
-      <div style={{ padding: "10px 16px", background: "var(--teal-50)", borderRadius: 10, fontSize: 13, color: "var(--teal-700)", fontWeight: 400, margin: "0 auto 18px", maxWidth: 380 }}>
-        ทีมเราจะติดต่อยืนยันผ่าน LINE ภายใน 1 ชั่วโมง 🎉
-      </div>
 
       <div style={{ fontFamily: "var(--font-inter)", fontSize: 24, fontWeight: 700, color: "var(--fg-1)", marginBottom: 20 }}>฿{total.toLocaleString()}</div>
       <button onClick={onReset} className="btn btn-secondary">{joinHost ? "ร่วมทริปอื่น" : "จองอีก"}</button>
@@ -455,7 +482,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const [dateIso, setDateIso] = useState(() => toIso(new Date()));
   const [date, setDate]       = useState(() => isoToLabel(toIso(new Date())));
 
-  const [timeSlot, setTimeSlot]             = useState<TimeSlotId>("MORNING");
+  const [timeSlot, setTimeSlot]             = useState<string>("07:00");
   const [route, setRoute]                   = useState("phoprak");
   const [routeCat, setRouteCat]             = useState<RouteCategory>("short");
   const [paddlers, setPaddlers]             = useState(2);
@@ -488,7 +515,9 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
           if (first) {
             setDateIso(first.date);
             setDate(isoToLabel(first.date));
-            if (!first.morning) setTimeSlot("AFTERNOON");
+            // Pick the first available hour slot
+            const firstHour = TIME_SLOTS.find((h) => first.hours[h] ?? true);
+            if (firstHour) setTimeSlot(firstHour);
           }
         }
       })
@@ -500,7 +529,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   useEffect(() => {
     if (!joinTripProp) return;
     setDate(joinTripProp.date);
-    setDateIso(joinTripProp.dateKey);  // dateKey holds the ISO date "2026-05-23"
+    setDateIso(joinTripProp.dateKey);
     setTimeSlot(joinTripProp.timeSlot);
     setRoute(joinTripProp.routeId);
     const r = ROUTES.find((x) => x.id === joinTripProp.routeId);
@@ -513,8 +542,11 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
     setDateIso(iso);
     setDate(isoToLabel(iso));
     const avail = availability.find((a) => a.date === iso);
-    if (avail && !avail.morning && timeSlot === "MORNING") setTimeSlot("AFTERNOON");
-    if (avail && !avail.afternoon && timeSlot === "AFTERNOON") setTimeSlot("MORNING");
+    if (avail && !(avail.hours[timeSlot] ?? true)) {
+      // Current time slot not available on this date — pick first available
+      const firstAvail = TIME_SLOTS.find((h) => avail.hours[h] ?? true);
+      if (firstAvail) setTimeSlot(firstAvail);
+    }
   };
 
   const isJoin = !!joinTripProp;
@@ -522,7 +554,6 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const photoTotal = photoPermission === "private" && paddlers >= 2 ? PRIVATE_PHOTO_PRICE * paddlers : 0;
   const baseTotal = selectedRoute.price * paddlers;
   const total = baseTotal + photoTotal;
-  const selectedTimeSlot = TIMESLOTS.find((t) => t.id === timeSlot)!;
   const stepNames = ["วัน", "รอบ", "เส้นทาง", "ผู้พาย", "ติดต่อ"];
 
   const next = () => setStep((s) => Math.min(s + 1, 4));
@@ -564,7 +595,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   if (confirmed) {
     return (
       <div id="book" style={cardStyle}>
-        <ConfirmedState date={date} timeSlot={selectedTimeSlot} route={selectedRoute} paddlers={paddlers} name={name} photoPermission={photoPermission} total={total} bookingId={bookingId} joinHost={joinTripProp?.host ?? null} onReset={handleReset} />
+        <ConfirmedState date={date} timeSlot={timeSlot} route={selectedRoute} paddlers={paddlers} name={name} photoPermission={photoPermission} total={total} bookingId={bookingId} joinHost={joinTripProp?.host ?? null} onReset={handleReset} />
       </div>
     );
   }
@@ -630,7 +661,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
             photoPermission={photoPermission} setPhotoPermission={setPhotoPermission}
             paddlers={paddlers}
             fieldErrors={fieldErrors}
-            summary={{ date, timeSlot: selectedTimeSlot, route: selectedRoute, paddlers, skill, photoPermission, baseTotal, photoTotal, total }}
+            summary={{ date, timeSlot, route: selectedRoute, paddlers, skill, photoPermission, baseTotal, photoTotal, total }}
           />
         )}
       </div>

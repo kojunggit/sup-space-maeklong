@@ -1,10 +1,14 @@
-import { getMaxBoards } from "@/app/actions/settings";
+import { getMaxBoards, getClosedSlots } from "@/app/actions/settings";
 import AdminSettings from "../../_components/AdminSettings";
+import ClosedSlotsSettings from "../../_components/ClosedSlotsSettings";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const maxBoards = await getMaxBoards();
+  const [maxBoards, closedSlots] = await Promise.all([
+    getMaxBoards(),
+    getClosedSlots(),
+  ]);
 
   return (
     <div style={{ padding: "28px 24px", maxWidth: 680 }}>
@@ -20,7 +24,12 @@ export default async function SettingsPage() {
         <SectionLabel label="ความจุต่อรอบ" />
         <AdminSettings initialMaxBoards={maxBoards} />
 
-        {/* Future settings can be added here */}
+        {/* Closed dates / times */}
+        <SectionLabel label="วันปิดบริการ" />
+        <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 12, color: "var(--fg-3)", margin: "0 0 4px", lineHeight: 1.5 }}>
+          วันหรือเวลาที่ตั้งค่าไว้จะไม่สามารถจองได้ และจะไม่แสดงเป็นตัวเลือกให้ลูกค้า
+        </p>
+        <ClosedSlotsSettings initialSlots={closedSlots} />
       </div>
     </div>
   );

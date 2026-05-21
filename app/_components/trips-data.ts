@@ -1,6 +1,19 @@
 export type RouteCategory = "short" | "medium" | "long";
-export type TimeSlotId = "MORNING" | "AFTERNOON";
+export type TimeSlotId = string;   // "07:00"–"17:00" (new) or "MORNING"/"AFTERNOON" (legacy)
 export type SkillLevel = "BEGINNER" | "INTERMEDIATE" | "PRO";
+
+/** Hourly time slots shown in the booking widget (07:00 – 17:00, every 1 h) */
+export const TIME_SLOTS = [
+  "07:00","08:00","09:00","10:00","11:00",
+  "12:00","13:00","14:00","15:00","16:00","17:00",
+] as const;
+
+/** Display a raw timeSlot value (handles both legacy and new format) */
+export function formatSlot(slot: string): string {
+  if (slot === "MORNING")   return "รอบเช้า";
+  if (slot === "AFTERNOON") return "รอบบ่าย";
+  return `${slot} น.`;
+}
 
 export interface Route {
   id: string;
@@ -17,7 +30,7 @@ export interface UpcomingTrip {
   date: string;        // Thai display "ส. 23 พ.ค."
   dateKey: string;     // ISO date "2026-05-23" — used to pre-fill the booking widget
   day: string;         // Full Thai day name "เสาร์"
-  timeSlot: TimeSlotId;
+  timeSlot: string;    // "09:00" (new) or "MORNING"/"AFTERNOON" (legacy)
   routeId: string;
   joined: number;
   max: number;

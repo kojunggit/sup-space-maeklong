@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateBookingStatus, type BookingRecord } from "@/app/actions/booking";
-import { ROUTES_BY_ID, TIMESLOTS } from "@/app/_components/trips-data";
+import { ROUTES_BY_ID, TIMESLOTS, formatSlot } from "@/app/_components/trips-data";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -174,6 +174,10 @@ function GroupCard({
 
   const route       = ROUTES_BY_ID[group.routeId ?? ""];
   const slotInfo    = TIMESLOTS.find((t) => t.id === group.timeSlot);
+  // Hourly slots ("09:00") won't match legacy TIMESLOTS — fall back gracefully
+  const slotLabel   = slotInfo ? slotInfo.label : formatSlot(group.timeSlot);
+  const slotTime    = slotInfo ? slotInfo.time  : `${group.timeSlot} น.`;
+  const slotIcon    = slotInfo?.icon ?? "⏰";
   const totalBoards = group.bookings.reduce((s, b) => s + b.paddlers, 0);
   const pending     = group.bookings.filter((b) => b.status === "PENDING").length;
   const confirmed   = group.bookings.filter((b) => b.status === "CONFIRMED").length;
@@ -205,9 +209,9 @@ function GroupCard({
         {/* Trip info */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: 15, color: "var(--fg-1)", marginBottom: 3 }}>
-            {slotInfo?.icon} {slotInfo?.label ?? group.timeSlot}
+            {slotIcon} {slotLabel}
             <span style={{ fontFamily: "var(--font-inter)", fontWeight: 400, fontSize: 12, color: "var(--fg-4)", marginLeft: 8 }}>
-              {slotInfo?.time}
+              {slotTime}
             </span>
           </div>
           <div style={{ fontSize: 13, color: "var(--fg-2)", marginBottom: 7 }}>
