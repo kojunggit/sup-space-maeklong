@@ -57,6 +57,7 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
         status:          "PENDING",
       },
     });
+    revalidatePath("/");   // refresh UpcomingTrips on home page
     return { ok: true, id: booking.id };
   } catch (err) {
     console.error("createBooking error:", err);
