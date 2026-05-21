@@ -17,19 +17,22 @@ model User {
 }
 
 model Booking {
-  id          String    @id @default(cuid())
-  userId      String?
-  user        User?     @relation(fields: [userId], references: [id])
-  guestName   String?
-  guestPhone  String?
-  date        String
-  timeSlot    String    // MORNING | AFTERNOON
-  routeId     String?
-  paddlers    Int       @default(1)
-  weight      Float?
-  skillLevel  String?   // BEGINNER | INTERMEDIATE | PRO
-  hasPhoto    Boolean   @default(false)
-  total       Int?
-  status      String    @default("PENDING")
-  createdAt   DateTime  @default(now())
+  id              String   @id @default(cuid())
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id])
+  guestName       String?
+  guestPhone      String?
+  date            String
+  timeSlot        String
+  routeId         String?
+  paddlers        Int      @default(1)
+  weight          Float?
+  skillLevel      String?
+  hasPhoto        Boolean  @default(false)
+  photoPermission String   @default("allow")  // allow | notAllow | private
+  pickupAddress   String?
+  notes           String?
+  total           Int?
+  status          String   @default("PENDING")
+  createdAt       DateTime @default(now())
 }
