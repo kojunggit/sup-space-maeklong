@@ -1,0 +1,35 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id       String    @id @default(cuid())
+  name     String?
+  email    String?   @unique
+  image    String?
+  role     String    @default("USER")
+  bookings Booking[]
+}
+
+model Booking {
+  id          String    @id @default(cuid())
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id])
+  guestName   String?
+  guestPhone  String?
+  date        String
+  timeSlot    String    // MORNING | AFTERNOON
+  routeId     String?
+  paddlers    Int       @default(1)
+  weight      Float?
+  skillLevel  String?   // BEGINNER | INTERMEDIATE | PRO
+  hasPhoto    Boolean   @default(false)
+  total       Int?
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+}
