@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 const SERVICES = [
-  { eyebrow: "ทัวร์ไกด์", title: "13 เส้นทางพาย", desc: "สั้น กลาง ไกล · กาแฟริมคลอง · ตลาดน้ำในตำนาน · 3 ตลาดน้ำ 25 กม · ทีมเรารู้น้ำขึ้นน้ำลง และจุดถ่ายภาพดีที่สุด", bullets: ["ระยะใกล้ ฿500/บอร์ด · 2 ชม", "ระยะกลาง ฿700–750", "ระยะไกล ฿900 · 16–25 กม"], accent: "var(--sup-teal)", img: "/images/KOSI4747.jpg" },
+  { eyebrow: "ทัวร์ไกด์", title: "13 เส้นทางพาย", desc: "สั้น กลาง ไกล · กาแฟริมคลอง · ตลาดน้ำในตำนาน · 3 ตลาดน้ำ 25 กม · ทีมเรารู้น้ำขึ้นน้ำลง และจุดถ่ายภาพดีที่สุด", bullets: ["ระยะใกล้ ฿500/บอร์ด · 2 ชม", "ระยะกลาง ฿700–750", "ระยะไกล ฿900 · 16–25 กม"], accent: "var(--sup-teal)", img: "/images/KOSI4747.jpg", href: "/routes" },
   { eyebrow: "มือใหม่ ฟรี!", title: "สอนพายเบื้องต้น", desc: "ครั้งแรกเลย? เราสอนพื้นฐานให้ก่อนลงน้ำเสมอ · ทรงตัว · พาย · เลี้ยว · ฟรีไม่มีค่าใช้จ่ายเพิ่ม", bullets: ["บรีฟความปลอดภัย", "ฝึกบนฝั่งก่อนลงน้ำ", "เสื้อชูชีพทุกคน"], accent: "var(--sup-orange)", img: "/images/KOSI6260.jpg" },
   { eyebrow: "เก็บความทรงจำ", title: "ทีมถ่ายภาพ", desc: "เราถ่ายให้ฟรีสำหรับลง Social media · ถ้าอยากเก็บส่วนตัว มีบริการ private +฿500/คน", bullets: ["ฟรี: ภาพประชาสัมพันธ์", "ส่งทาง LINE", "Private +฿500/คน (ขั้นต่ำ 2 คน)"], accent: "var(--orange-600)", img: "/images/KOSI6162.jpg", badge: "ยอดนิยม" },
   { eyebrow: "สะดวกถึงประตู", title: "รับ-ส่งถึงที่พัก", desc: "ในรัศมี 5 กิโลเมตรจาก SUP Space Maeklong เรารับ-ส่งฟรี · เกินกว่านั้นคิดกิโลเมตรละ 7 บาท", bullets: ["ใน 5 กม · ฟรี", "เกิน 5 กม · 7฿/กม", "ไม่ต้องห่วงเรื่องที่จอด"], accent: "var(--sup-dark)", img: "/images/KOSI4714.jpg" },
@@ -24,10 +24,10 @@ function PackageBadge({ title, price, hint, highlight }: { title: string; price:
 
 interface ServiceCardProps {
   eyebrow: string; title: string; desc: string;
-  bullets: readonly string[]; accent: string; img: string; badge?: string;
+  bullets: readonly string[]; accent: string; img: string; badge?: string; href?: string;
 }
 
-function ServiceCard({ eyebrow, title, desc, bullets, accent, img, badge }: ServiceCardProps) {
+function ServiceCard({ eyebrow, title, desc, bullets, accent, img, badge, href }: ServiceCardProps) {
   const [hover, setHover] = useState(false);
   return (
     <div
@@ -59,6 +59,21 @@ function ServiceCard({ eyebrow, title, desc, bullets, accent, img, badge }: Serv
             </li>
           ))}
         </ul>
+        {href && (
+          <a
+            href={href}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              marginTop: 16, fontFamily: "var(--font-kanit)", fontSize: 13, fontWeight: 500,
+              color: accent, textDecoration: "none", letterSpacing: "0.02em",
+              transition: "gap 160ms ease",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.gap = "10px"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.gap = "6px"; }}
+          >
+            ดูเส้นทางทั้งหมด <span style={{ fontSize: 15 }}>→</span>
+          </a>
+        )}
       </div>
     </div>
   );
