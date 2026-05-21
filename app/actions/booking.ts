@@ -1,14 +1,11 @@
 "use server";
 
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { withAccelerate } from "@prisma/extension-accelerate";
 import { revalidatePath } from "next/cache";
 
 function getPrisma() {
-  const pool = new Pool({ connectionString: process.env.POSTGRES_PRISMA_URL });
-  const adapter = new PrismaPg(pool);
-  return new PrismaClient({ adapter });
+  return new PrismaClient().$extends(withAccelerate());
 }
 
 // ─── Booking creation ─────────────────────────────────────────────────────────
