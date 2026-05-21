@@ -2,14 +2,11 @@
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
 import { revalidatePath } from "next/cache";
 
-// PRISMA_DATABASE_URL = postgres://...@db.prisma.io:5432/postgres?sslmode=require
-// This URL has sslmode=require embedded — no extra ssl config needed.
+// PrismaPg in Prisma 7 accepts a connection string directly (string | Pool | PoolConfig)
 function getPrisma() {
-  const pool = new Pool({ connectionString: process.env.PRISMA_DATABASE_URL });
-  const adapter = new PrismaPg(pool);
+  const adapter = new PrismaPg(process.env.PRISMA_DATABASE_URL!);
   return new PrismaClient({ adapter });
 }
 
