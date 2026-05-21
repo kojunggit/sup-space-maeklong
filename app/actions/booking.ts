@@ -115,7 +115,7 @@ export async function getUpcomingTrips(): Promise<UpcomingTrip[]> {
   try {
     const rows = await prisma.booking.findMany({
       where: {
-        status: { not: "CANCELLED" },
+        status: "CONFIRMED",
         dateIso: { gte: todayIso },
       },
       orderBy: [{ dateIso: "asc" }, { timeSlot: "asc" }],
