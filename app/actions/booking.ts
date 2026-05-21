@@ -7,8 +7,9 @@ import { revalidatePath } from "next/cache";
 // DATABASE_URL  = prisma+postgres://accelerate.prisma-data.net/?api_key=...  (runtime)
 // PRISMA_DATABASE_URL = postgres://...@db.prisma.io:5432/...                 (CLI / migrations)
 function getPrisma() {
-  // withAccelerate() reads DATABASE_URL (prisma+postgres://) automatically
-  return new PrismaClient().$extends(withAccelerate());
+  return new PrismaClient({
+    accelerateUrl: process.env.DATABASE_URL,
+  }).$extends(withAccelerate());
 }
 
 // ─── Booking creation ─────────────────────────────────────────────────────────
