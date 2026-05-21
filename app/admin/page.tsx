@@ -1,11 +1,13 @@
 import { getBookings } from "@/app/actions/booking";
+import { getMaxBoards } from "@/app/actions/settings";
 import BookingsTable from "./_components/BookingsTable";
+import AdminSettings from "./_components/AdminSettings";
 import LogoutButton from "./_components/LogoutButton";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const bookings = await getBookings();
+  const [bookings, maxBoards] = await Promise.all([getBookings(), getMaxBoards()]);
 
   // Stats
   const todayIso   = new Date().toISOString().slice(0, 10);
@@ -37,6 +39,11 @@ export default async function AdminPage() {
           <StatCard label="รอยืนยัน" value={String(pending)} sub="รายการ" color="#D46B08" />
           <StatCard label="ยืนยันแล้ว" value={String(confirmed)} sub="รายการ" color="#389E0D" />
           <StatCard label="รายได้รวม" value={`฿${revenue.toLocaleString()}`} sub="ยกเว้นยกเลิก" color="var(--sup-teal)" />
+        </div>
+
+        {/* Settings */}
+        <div style={{ marginTop: 10 }}>
+          <AdminSettings initialMaxBoards={maxBoards} />
         </div>
       </div>
 

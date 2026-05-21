@@ -7,8 +7,6 @@ function getPrisma() {
   return new PrismaClient({ adapter });
 }
 
-const MAX_BOARDS = 8;
-
 function toIso(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
@@ -32,6 +30,10 @@ export async function GET() {
   try {
     const prisma = getPrisma();
 
+    // Read max boards from settings (default 8)
+    const settingRow = await prisma.setting.findUnique({ where: { key: "maxBoards" } }).catch(() => null);
+    const maxBoards  = settingRow ? (parseInt(settingRow.value, 10) || 8) : 8;
+
     // Sum confirmed paddlers per (dateIso, timeSlot)
     const rows = await prisma.booking.findMany({
       where: {
@@ -52,8 +54,8 @@ export async function GET() {
     const result = Array.from({ length: 14 }, (_, i) => {
       const d = new Date(today.getTime() + i * 86_400_000);
       const iso = toIso(d);
-      const morning   = (totals.get(`${iso}|MORNING`)   ?? 0) < MAX_BOARDS;
-      const afternoon = (totals.get(`${iso}|AFTERNOON`) ?? 0) < MAX_BOARDS;
+      const morning   = (totals.get(`${iso}|MORNING`)   ?? 0) < maxBoards;
+      const afternoon = (totals.get(`${iso}|AFTERNOON`) ?? 0) < maxBoards;
       return { date: iso, morning, afternoon, available: morning || afternoon };
     });
 

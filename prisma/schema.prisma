@@ -6,6 +6,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Setting {
+  key   String @id
+  value String
+}
+
 model User {
   id       String    @id @default(cuid())
   name     String?

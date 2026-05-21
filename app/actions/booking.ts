@@ -113,6 +113,10 @@ export async function getUpcomingTrips(): Promise<UpcomingTrip[]> {
   const prisma = getPrisma();
   const todayIso = new Date().toISOString().slice(0, 10);
   try {
+    // Read capacity setting (default 8)
+    const settingRow = await prisma.setting.findUnique({ where: { key: "maxBoards" } }).catch(() => null);
+    const maxBoards  = settingRow ? (parseInt(settingRow.value, 10) || 8) : 8;
+
     const rows = await prisma.booking.findMany({
       where: {
         status: "CONFIRMED",
@@ -142,8 +146,8 @@ export async function getUpcomingTrips(): Promise<UpcomingTrip[]> {
         day:      THAI_DAYS_FULL[d.getDay()],
         timeSlot: first.timeSlot as "MORNING" | "AFTERNOON",
         routeId:  first.routeId!,
-        joined:   Math.min(joined, 8),
-        max:      8,
+        joined:   Math.min(joined, maxBoards),
+        max:      maxBoards,
         host:     first.guestName ?? "ลูกค้า",
       });
     }
