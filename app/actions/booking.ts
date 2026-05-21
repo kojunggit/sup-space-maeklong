@@ -1,15 +1,16 @@
 "use server";
 
-import { PrismaClient, type Booking } from "@prisma/client";
-import { withAccelerate } from "@prisma/extension-accelerate";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import { revalidatePath } from "next/cache";
 
-// DATABASE_URL  = prisma+postgres://accelerate.prisma-data.net/?api_key=...  (runtime)
-// PRISMA_DATABASE_URL = postgres://...@db.prisma.io:5432/...                 (CLI / migrations)
+// PRISMA_DATABASE_URL = postgres://...@db.prisma.io:5432/postgres?sslmode=require
+// This URL has sslmode=require embedded — no extra ssl config needed.
 function getPrisma() {
-  return new PrismaClient({
-    accelerateUrl: process.env.DATABASE_URL,
-  }).$extends(withAccelerate());
+  const pool = new Pool({ connectionString: process.env.PRISMA_DATABASE_URL });
+  const adapter = new PrismaPg(pool);
+  return new PrismaClient({ adapter });
 }
 
 // ─── Booking creation ─────────────────────────────────────────────────────────
@@ -21,7 +22,7 @@ export interface BookingPayload {
   paddlers: number;
   weight: number;
   skillLevel: string;
-  photoPermission: string; // "allow" | "notAllow" | "private"
+  photoPermission: string;
   total: number;
   guestName: string;
   guestPhone: string;
@@ -91,7 +92,10 @@ export async function getBookings(status?: string): Promise<BookingRecord[]> {
       where: status && status !== "ALL" ? { status } : undefined,
       orderBy: { createdAt: "desc" },
     });
-    return (rows as Booking[]).map((b) => ({ ...b, createdAt: b.createdAt.toISOString() }));
+    return (rows as import("@prisma/client").Booking[]).map((b) => ({
+      ...b,
+      createdAt: b.createdAt.toISOString(),
+    }));
   } catch (err) {
     console.error("getBookings error:", err);
     return [];
