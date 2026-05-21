@@ -3,7 +3,14 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { revalidatePath } from "next/cache";
+import { ROUTES_BY_ID } from "@/app/_components/trips-data";
 import type { UpcomingTrip } from "@/app/_components/trips-data";
+
+/** Parse "09:00" → 9. Returns null for legacy "MORNING"/"AFTERNOON". */
+function parseHour(slot: string): number | null {
+  const n = parseInt(slot.split(":")[0], 10);
+  return isNaN(n) ? null : n;
+}
 
 // PrismaPg in Prisma 7 accepts a connection string directly (string | Pool | PoolConfig)
 function getPrisma() {
@@ -42,7 +49,7 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
   try {
     // ── Guard 1: no duplicate (same phone + date + time, not cancelled) ─────
     if (payload.guestPhone && payload.dateIso) {
-      const existing = await prisma.booking.findFirst({
+      const dup = await prisma.booking.findFirst({
         where: {
           guestPhone: payload.guestPhone,
           dateIso:    payload.dateIso,
@@ -51,7 +58,7 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
         },
         select: { id: true },
       });
-      if (existing) {
+      if (dup) {
         return { ok: false, error: "คุณมีการจองในวันและเวลานี้อยู่แล้ว กรุณาตรวจสอบการจองของคุณ" };
       }
     }
@@ -66,6 +73,42 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
         );
         if (blocked) {
           return { ok: false, error: "วันและเวลานี้ปิดให้บริการ กรุณาเลือกวันหรือเวลาอื่น" };
+        }
+      }
+    }
+
+    // ── Guard 3: 1 trip per slot — duration-overlap check ───────────────────
+    // Rule: each slot can have at most 1 trip group (same date+time+route = join ✓,
+    //       any overlap with a different booking = ✗)
+    const newStartHour = parseHour(payload.timeSlot);
+    if (newStartHour !== null && payload.dateIso) {
+      const newRoute    = ROUTES_BY_ID[payload.routeId];
+      const newDuration = newRoute?.duration ?? 2;
+      // Hours the new booking would occupy: [H, H+D-1]
+      const newEnd = newStartHour + newDuration - 1;
+
+      const sameDayBookings = await prisma.booking.findMany({
+        where: {
+          dateIso: payload.dateIso,
+          status:  { not: "CANCELLED" },
+        },
+        select: { timeSlot: true, routeId: true },
+      });
+
+      for (const eb of sameDayBookings) {
+        const ebStart = parseHour(eb.timeSlot);
+        if (ebStart === null) continue; // skip legacy MORNING/AFTERNOON entries
+
+        // Same trip (join): same start + same route → allowed
+        if (ebStart === newStartHour && eb.routeId === payload.routeId) continue;
+
+        const ebRoute    = eb.routeId ? ROUTES_BY_ID[eb.routeId] : null;
+        const ebDuration = ebRoute?.duration ?? 2;
+        const ebEnd      = ebStart + ebDuration - 1;
+
+        // Overlap: [newStart, newEnd] ∩ [ebStart, ebEnd] is non-empty
+        if (newStartHour <= ebEnd && ebStart <= newEnd) {
+          return { ok: false, error: "ช่วงเวลานี้มีทริปอยู่แล้ว กรุณาเลือกเวลาอื่น" };
         }
       }
     }

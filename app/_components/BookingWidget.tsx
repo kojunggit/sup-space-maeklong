@@ -139,15 +139,39 @@ function StepTime({ timeSlot, setTimeSlot, availability, dateIso }: {
   timeSlot: string; setTimeSlot: (t: string) => void;
   availability: AvailDay[]; dateIso: string;
 }) {
-  const dayAvail = availability.find((d) => d.date === dateIso);
+  const dayAvail  = availability.find((d) => d.date === dateIso);
+  const isLoading = availability.length === 0; // still fetching
 
   return (
     <div>
       <Label>เลือกเวลา</Label>
+
+      {/* Legend */}
+      <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 12, fontFamily: "var(--font-kanit)", color: "var(--fg-3)" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#52C41A", display: "inline-block" }} />
+          ว่าง
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#FF4D4F", display: "inline-block" }} />
+          มีทริปแล้ว
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--sup-orange)", display: "inline-block" }} />
+          เลือกอยู่
+        </span>
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
         {TIME_SLOTS.map((h) => {
-          const avail = !dayAvail || (dayAvail.hours[h] ?? true);
+          const avail    = isLoading || !dayAvail || (dayAvail.hours[h] ?? true);
           const selected = timeSlot === h;
+
+          // Color scheme: selected=orange, available=green, unavailable=red
+          const bg     = selected ? "#FFF4E5" : avail ? "#F6FFED" : "#FFF1F0";
+          const border = selected ? "2px solid var(--sup-orange)" : avail ? "2px solid #52C41A" : "2px solid #FF4D4F";
+          const color  = selected ? "var(--orange-700)" : avail ? "#237804" : "#CF1322";
+
           return (
             <button
               key={h}
@@ -155,26 +179,25 @@ function StepTime({ timeSlot, setTimeSlot, availability, dateIso }: {
               disabled={!avail}
               style={{
                 padding: "13px 6px", borderRadius: 10, textAlign: "center", position: "relative",
-                border: selected ? "2px solid var(--sup-orange)" : "1.5px solid var(--border-2)",
-                background: selected ? "#FFF4E5" : (avail ? "#fff" : "var(--slate-100)"),
-                color: selected ? "var(--orange-700)" : (avail ? "var(--fg-1)" : "var(--fg-4)"),
+                border, background: bg, color,
                 cursor: avail ? "pointer" : "not-allowed",
-                opacity: avail ? 1 : 0.5,
                 fontFamily: "var(--font-inter)",
-                fontSize: 14, fontWeight: selected ? 700 : 500,
+                fontSize: 14, fontWeight: selected ? 700 : 600,
                 transition: "all 180ms var(--ease-out)",
+                boxShadow: selected ? "0 0 0 3px rgba(255,140,0,0.15)" : avail ? "0 0 0 0px transparent" : "none",
               }}
             >
-              {h}
-              {!avail && (
-                <span style={{ position: "absolute", top: 4, right: 4, width: 6, height: 6, borderRadius: 999, background: "var(--danger)" }} />
+              {isLoading ? (
+                <span style={{ opacity: 0.4 }}>{h}</span>
+              ) : (
+                h
               )}
             </button>
           );
         })}
       </div>
-      <p style={{ marginTop: 14, fontFamily: "var(--font-kanit)", fontSize: 13, color: "var(--fg-3)", fontWeight: 300, lineHeight: 1.5 }}>
-        ทริปบางเส้นทางต้องออกก่อน 08.00 น. (ดำเนินสะดวก) · ทริประยะใกล้รอบเย็นเฉพาะดำเนินพวา
+      <p style={{ marginTop: 14, fontFamily: "var(--font-kanit)", fontSize: 12, color: "var(--fg-3)", fontWeight: 300, lineHeight: 1.5 }}>
+        ปุ่มสีแดง = ช่วงเวลานั้นมีทริปอยู่แล้ว (รวมเวลาที่ทริปนั้นใช้) · เลือกเวลาสีเขียว
       </p>
     </div>
   );

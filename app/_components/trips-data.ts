@@ -22,6 +22,7 @@ export interface Route {
   note: string;
   km: number;
   price: number;
+  duration: number;  // ระยะเวลาทริป (ชั่วโมง) — ใช้ block ช่วงเวลาที่ถัดมา
   recommend?: boolean;
 }
 
@@ -64,19 +65,19 @@ export const TIMESLOTS: TimeSlot[] = [
 ];
 
 export const ROUTES: Route[] = [
-  { id: "phoprak",     cat: "short",  name: "ร้านกาแฟภพรัก",             note: "พายเข้าคลองเม้ง · สวนมะพร้าว · กาแฟพิเศษ",        km: 3,  price: 500, recommend: true },
-  { id: "pakhiao",     cat: "short",  name: "หอยทอดป้าเขียว",            note: "เลี้ยวขวาเข้าคลองเม้ง · ร้าน 40 ปี · กุ้งเผา",      km: 3,  price: 500, recommend: true },
-  { id: "kaodrip",     cat: "short",  name: "ร้านกาแฟเก๋าจะดริป",         note: "เส้นทางสั้นๆ · บรรยากาศในสวน",                    km: 3,  price: 500 },
-  { id: "prokcharoen", cat: "short",  name: "วัดปรกเจริญ + ให้อาหารปลา",  note: "เหมาะพาเด็กๆ · ไหว้พระ · ระยะสั้นชิลๆ",           km: 3,  price: 500 },
-  { id: "rongsuan",    cat: "short",  name: "ตลาดนัดร่องสวนยายแพง",       note: "ของกินราคาน่ารัก · เปิดเสาร์-อาทิตย์เท่านั้น",      km: 3,  price: 500 },
-  { id: "damnoenpwa",  cat: "short",  name: "ร้านอาหารดำเนินพวา",         note: "รอบเย็น · บรรยากาศโรแมนติก · กระแสน้ำแรง",        km: 4,  price: 500 },
-  { id: "thaka",       cat: "medium", name: "ตลาดน้ำท่าคา",               note: "คลองบ้านใต้ · ตลาดน้ำโบราณ",                      km: 8,  price: 700, recommend: true },
-  { id: "damnoen",     cat: "medium", name: "ตลาดน้ำดำเนินสะดวก",         note: "ตลาดน้ำในตำนาน · ออกก่อน 08.00 น.",               km: 6,  price: 700, recommend: true },
-  { id: "bangnoi",     cat: "medium", name: "บางน้อย / Somdul Bee",       note: "ช่วงน้ำลง · ตลาดน้ำ + ผึ้ง + สะพานแขวน",          km: 7,  price: 750 },
-  { id: "watyai",      cat: "medium", name: "สะพานแขวนวัดใหญ่",           note: "สะพานปลาทู · ล่องไปตามแม่น้ำแม่กลอง",             km: 8,  price: 700 },
-  { id: "three-mkts",  cat: "long",   name: "ทริป 3 ตลาดน้ำ",             note: "อัมพวา + ท่าคา + บางน้อย · ผจญภัยครบรส",          km: 25, price: 900, recommend: true },
-  { id: "bangruahak",  cat: "long",   name: "คลองบางเรือหัก",             note: "อุโมงป่าจาก · กระแสน้ำท้าทาย",                    km: 20, price: 900 },
-  { id: "khaoyisarn",  cat: "long",   name: "เขายี่สาร — ข้าวใหม่ปลามัน", note: "วิถีคนเผาถ่าน · ทานริมน้ำ",                      km: 16, price: 900 },
+  { id: "phoprak",     cat: "short",  name: "ร้านกาแฟภพรัก",             note: "พายเข้าคลองเม้ง · สวนมะพร้าว · กาแฟพิเศษ",        km: 3,  price: 500, duration: 2, recommend: true },
+  { id: "pakhiao",     cat: "short",  name: "หอยทอดป้าเขียว",            note: "เลี้ยวขวาเข้าคลองเม้ง · ร้าน 40 ปี · กุ้งเผา",      km: 3,  price: 500, duration: 2, recommend: true },
+  { id: "kaodrip",     cat: "short",  name: "ร้านกาแฟเก๋าจะดริป",         note: "เส้นทางสั้นๆ · บรรยากาศในสวน",                    km: 3,  price: 500, duration: 2 },
+  { id: "prokcharoen", cat: "short",  name: "วัดปรกเจริญ + ให้อาหารปลา",  note: "เหมาะพาเด็กๆ · ไหว้พระ · ระยะสั้นชิลๆ",           km: 3,  price: 500, duration: 2 },
+  { id: "rongsuan",    cat: "short",  name: "ตลาดนัดร่องสวนยายแพง",       note: "ของกินราคาน่ารัก · เปิดเสาร์-อาทิตย์เท่านั้น",      km: 3,  price: 500, duration: 2 },
+  { id: "damnoenpwa",  cat: "short",  name: "ร้านอาหารดำเนินพวา",         note: "รอบเย็น · บรรยากาศโรแมนติก · กระแสน้ำแรง",        km: 4,  price: 500, duration: 2 },
+  { id: "thaka",       cat: "medium", name: "ตลาดน้ำท่าคา",               note: "คลองบ้านใต้ · ตลาดน้ำโบราณ",                      km: 8,  price: 700, duration: 4, recommend: true },
+  { id: "damnoen",     cat: "medium", name: "ตลาดน้ำดำเนินสะดวก",         note: "ตลาดน้ำในตำนาน · ออกก่อน 08.00 น.",               km: 6,  price: 700, duration: 3, recommend: true },
+  { id: "bangnoi",     cat: "medium", name: "บางน้อย / Somdul Bee",       note: "ช่วงน้ำลง · ตลาดน้ำ + ผึ้ง + สะพานแขวน",          km: 7,  price: 750, duration: 4 },
+  { id: "watyai",      cat: "medium", name: "สะพานแขวนวัดใหญ่",           note: "สะพานปลาทู · ล่องไปตามแม่น้ำแม่กลอง",             km: 8,  price: 700, duration: 4 },
+  { id: "three-mkts",  cat: "long",   name: "ทริป 3 ตลาดน้ำ",             note: "อัมพวา + ท่าคา + บางน้อย · ผจญภัยครบรส",          km: 25, price: 900, duration: 6, recommend: true },
+  { id: "bangruahak",  cat: "long",   name: "คลองบางเรือหัก",             note: "อุโมงป่าจาก · กระแสน้ำท้าทาย",                    km: 20, price: 900, duration: 5 },
+  { id: "khaoyisarn",  cat: "long",   name: "เขายี่สาร — ข้าวใหม่ปลามัน", note: "วิถีคนเผาถ่าน · ทานริมน้ำ",                      km: 16, price: 900, duration: 5 },
 ];
 
 export const ROUTES_BY_ID: Record<string, Route> = Object.fromEntries(
