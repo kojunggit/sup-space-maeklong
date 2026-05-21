@@ -5,7 +5,9 @@ import { withAccelerate } from "@prisma/extension-accelerate";
 import { revalidatePath } from "next/cache";
 
 function getPrisma() {
-  return new PrismaClient().$extends(withAccelerate());
+  return new PrismaClient({
+    datasourceUrl: process.env.DATABASE_URL ?? process.env.POSTGRES_PRISMA_URL,
+  }).$extends(withAccelerate());
 }
 
 // ─── Booking creation ─────────────────────────────────────────────────────────
