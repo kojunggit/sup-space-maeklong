@@ -2,8 +2,8 @@ import { defineConfig } from "prisma/config";
 
 export default defineConfig({
   datasource: {
-    // Prisma Postgres (Vercel) injects DATABASE_URL
-    // Falls back to POSTGRES_PRISMA_URL for local dev
-    url: (process.env.POSTGRES_URL ?? process.env.POSTGRES_PRISMA_URL) as string,
+    // PRISMA_DATABASE_URL = postgres:// direct URL — used by CLI (prisma db push)
+    // DATABASE_URL        = prisma+postgres:// Accelerate URL — used by the app at runtime
+    url: process.env.PRISMA_DATABASE_URL as string,
   },
 });

@@ -1,17 +1,15 @@
 "use server";
 
 import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+import { withAccelerate } from "@prisma/extension-accelerate";
 import { revalidatePath } from "next/cache";
 
+// DATABASE_URL  = prisma+postgres://accelerate.prisma-data.net/?api_key=...  (runtime)
+// PRISMA_DATABASE_URL = postgres://...@db.prisma.io:5432/...                 (CLI / migrations)
 function getPrisma() {
-  const pool = new Pool({
-    connectionString: process.env.POSTGRES_URL ?? process.env.POSTGRES_PRISMA_URL,
-    ssl: { rejectUnauthorized: false },
-  });
-  const adapter = new PrismaPg(pool);
-  return new PrismaClient({ adapter });
+  return new PrismaClient({
+    datasourceUrl: process.env.DATABASE_URL,
+  }).$extends(withAccelerate());
 }
 
 // ─── Booking creation ─────────────────────────────────────────────────────────
@@ -83,7 +81,7 @@ export interface BookingRecord {
   notes: string | null;
   total: number | null;
   status: string;
-  createdAt: string; // ISO string (serialisable for client components)
+  createdAt: string;
 }
 
 export async function getBookings(status?: string): Promise<BookingRecord[]> {
