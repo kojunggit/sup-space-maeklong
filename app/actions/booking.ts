@@ -4,6 +4,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { revalidatePath } from "next/cache";
 import { ROUTES_BY_ID } from "@/app/_components/trips-data";
+import { sendTelegramNotification, buildBookingMessage } from "@/app/lib/telegram-notify";
 import type { UpcomingTrip } from "@/app/_components/trips-data";
 
 /** Parse "09:00" → 9. Returns null for legacy "MORNING"/"AFTERNOON". */
@@ -134,6 +135,7 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
         status:          "PENDING",
       },
     });
+    void sendTelegramNotification(buildBookingMessage(booking));
     revalidatePath("/");   // refresh UpcomingTrips on home page
     return { ok: true, id: booking.id };
   } catch (err) {
