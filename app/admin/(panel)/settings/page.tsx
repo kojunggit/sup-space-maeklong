@@ -1,13 +1,15 @@
-import { getMaxBoards, getClosedSlots } from "@/app/actions/settings";
+import { getMaxBoards, getClosedSlots, getTelegramConfig } from "@/app/actions/settings";
 import AdminSettings from "../../_components/AdminSettings";
 import ClosedSlotsSettings from "../../_components/ClosedSlotsSettings";
+import TelegramSettings from "../../_components/TelegramSettings";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const [maxBoards, closedSlots] = await Promise.all([
+  const [maxBoards, closedSlots, telegramConfig] = await Promise.all([
     getMaxBoards(),
     getClosedSlots(),
+    getTelegramConfig(),
   ]);
 
   return (
@@ -30,6 +32,13 @@ export default async function SettingsPage() {
           วันหรือเวลาที่ตั้งค่าไว้จะไม่สามารถจองได้ และจะไม่แสดงเป็นตัวเลือกให้ลูกค้า
         </p>
         <ClosedSlotsSettings initialSlots={closedSlots} />
+
+        {/* Telegram notifications */}
+        <SectionLabel label="การแจ้งเตือน" />
+        <TelegramSettings
+          initialToken={telegramConfig?.token ?? ""}
+          initialChatId={telegramConfig?.chatId ?? ""}
+        />
       </div>
     </div>
   );

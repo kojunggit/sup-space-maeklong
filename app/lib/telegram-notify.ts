@@ -1,10 +1,10 @@
 import { ROUTES_BY_ID, formatSlot } from "@/app/_components/trips-data";
 
-export async function sendTelegramNotification(message: string): Promise<void> {
-  const token  = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
-  if (!token || !chatId) return;
-
+export async function sendTelegramNotification(
+  message: string,
+  token: string,
+  chatId: string,
+): Promise<void> {
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
