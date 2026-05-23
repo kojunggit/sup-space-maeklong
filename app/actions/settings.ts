@@ -103,3 +103,76 @@ export async function removeClosedSlot(id: string): Promise<{ ok: boolean }> {
     return { ok: false };
   }
 }
+
+// ─── Telegram config ──────────────────────────────────────────────────────────
+
+export async function getTelegramConfig(): Promise<{ token: string; chatId: string } | null> {
+  const prisma = getPrisma();
+  try {
+    const [tokenRow, chatIdRow] = await Promise.all([
+      prisma.setting.findUnique({ where: { key: "telegramToken" } }),
+      prisma.setting.findUnique({ where: { key: "telegramChatId" } }),
+    ]);
+    const token  = tokenRow?.value?.trim()  ?? "";
+    const chatId = chatIdRow?.value?.trim() ?? "";
+    if (!token || !chatId) return null;
+    return { token, chatId };
+  } catch {
+    return null;
+  }
+}
+
+export async function setTelegramConfig(
+  token: string,
+  chatId: string,
+): Promise<{ ok: boolean }> {
+  const t = token.trim();
+  const c = chatId.trim();
+  if (!t || !c) return { ok: false };
+  const prisma = getPrisma();
+  try {
+    await Promise.all([
+      prisma.setting.upsert({
+        where:  { key: "telegramToken" },
+        update: { value: t },
+        create: { key: "telegramToken", value: t },
+      }),
+      prisma.setting.upsert({
+        where:  { key: "telegramChatId" },
+        update: { value: c },
+        create: { key: "telegramChatId", value: c },
+      }),
+    ]);
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (err) {
+    console.error("setTelegramConfig error:", err);
+    return { ok: false };
+  }
+}
+
+export async function testTelegramConfig(): Promise<{ ok: boolean; error?: string }> {
+  const config = await getTelegramConfig();
+  if (!config) return { ok: false, error: "ยังไม่ได้ตั้งค่า Bot Token หรือ Chat ID" };
+  try {
+    const res = await fetch(
+      `https://api.telegram.org/bot${config.token}/sendMessage`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id:    config.chatId,
+          text:       "✅ ทดสอบการแจ้งเตือน Telegram สำเร็จ!",
+          parse_mode: "HTML",
+        }),
+      },
+    );
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as { description?: string };
+      return { ok: false, error: body.description ?? `HTTP ${res.status}` };
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
