@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { ROUTES_BY_ID } from "@/app/_components/trips-data";
 import { sendTelegramNotification, buildBookingMessage } from "@/app/lib/telegram-notify";
 import { getTelegramConfig } from "@/app/actions/settings";
+import { getActiveSpecialTrips } from "@/app/actions/special-trips";
 import type { UpcomingTrip } from "@/app/_components/trips-data";
 
 /** Parse "09:00" → 9. Returns null for legacy "MORNING"/"AFTERNOON". */
@@ -38,6 +39,9 @@ export interface BookingPayload {
   contactId?: string;
   pickupAddress?: string;
   notes?: string;
+  // Special trip fields
+  specialTripId?: string;
+  boardChoice?:   "rental" | "own";
 }
 
 export interface BookingResult {
@@ -80,10 +84,9 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
     }
 
     // ── Guard 3: 1 trip per slot — duration-overlap check ───────────────────
-    // Rule: each slot can have at most 1 trip group (same date+time+route = join ✓,
-    //       any overlap with a different booking = ✗)
+    // Special trips bypass this guard (they have their own slot managed by admin)
     const newStartHour = parseHour(payload.timeSlot);
-    if (newStartHour !== null && payload.dateIso) {
+    if (!payload.specialTripId && newStartHour !== null && payload.dateIso) {
       const newRoute    = ROUTES_BY_ID[payload.routeId];
       const newDuration = newRoute?.duration ?? 2;
       // Hours the new booking would occupy: [H, H+D-1]
@@ -120,7 +123,9 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
         date:            payload.date,
         dateIso:         payload.dateIso || null,
         timeSlot:        payload.timeSlot,
-        routeId:         payload.routeId,
+        routeId:         payload.routeId   || null,
+        specialTripId:   payload.specialTripId || null,
+        boardChoice:     payload.boardChoice   || null,
         paddlers:        payload.paddlers,
         weight:          payload.weight,
         skillLevel:      payload.skillLevel,
@@ -237,6 +242,41 @@ export async function getUpcomingTrips(): Promise<UpcomingTrip[]> {
         host:     first.guestName ?? "ลูกค้า",
       });
     }
+
+    // Merge active special trips
+    const specialTrips = await getActiveSpecialTrips();
+    for (const st of specialTrips) {
+      const joinedRows = await prisma.booking.findMany({
+        where: { specialTripId: st.id, status: { not: "CANCELLED" } },
+        select: { paddlers: true },
+      });
+      const joined = joinedRows.reduce((sum, b) => sum + b.paddlers, 0);
+      const d = new Date(st.dateIso + "T00:00:00");
+      trips.push({
+        id:                  `special|${st.id}`,
+        date:                st.date,
+        dateKey:             st.dateIso,
+        day:                 THAI_DAYS_FULL[d.getDay()],
+        timeSlot:            st.timeSlot,
+        routeId:             "",
+        joined:              Math.min(joined, st.maxBoards),
+        max:                 st.maxBoards,
+        host:                "ทีมงาน",
+        isSpecial:           true,
+        specialTripId:       st.id,
+        specialName:         st.name,
+        specialDescription:  st.description ?? undefined,
+        specialRentalPrice:  st.rentalPrice,
+        specialOwnBoardPrice: st.ownBoardPrice,
+        specialLocation:     st.location,
+      });
+    }
+
+    // Sort all trips by dateIso then timeSlot
+    trips.sort((a, b) => {
+      if (a.dateKey !== b.dateKey) return a.dateKey.localeCompare(b.dateKey);
+      return a.timeSlot.localeCompare(b.timeSlot);
+    });
 
     return trips;
   } catch (err) {

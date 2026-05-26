@@ -32,6 +32,8 @@ model Booking {
   dateIso         String?  // ISO "2026-05-23" — used for filtering/sorting upcoming trips
   timeSlot        String
   routeId         String?
+  specialTripId   String?  // set when booking a special trip
+  boardChoice     String?  // "rental" | "own" — for special trips
   paddlers        Int      @default(1)
   weight          Float?
   skillLevel      String?
@@ -42,4 +44,19 @@ model Booking {
   total           Int?
   status          String   @default("PENDING")
   createdAt       DateTime @default(now())
+}
+
+model SpecialTrip {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  rentalPrice   Int
+  ownBoardPrice Int
+  dateIso       String   // "2026-05-28"
+  date          String   // "ส. 28 พ.ค." (Thai display)
+  timeSlot      String   // "09:00"
+  location      String
+  maxBoards     Int      @default(8)
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
 }
