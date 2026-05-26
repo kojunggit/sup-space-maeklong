@@ -177,12 +177,26 @@ export interface BookingRecord {
   createdAt: string;
 }
 
-export async function getBookings(status?: string): Promise<BookingRecord[]> {
+export async function getBookings(
+  status?: string,
+  dateRange?: "upcoming" | "past",
+): Promise<BookingRecord[]> {
   const prisma = getPrisma();
+  const todayIso = new Date().toISOString().slice(0, 10);
   try {
+    const statusFilter = status && status !== "ALL" ? { status } : {};
+    const dateFilter =
+      dateRange === "upcoming" ? { OR: [{ dateIso: { gte: todayIso } }, { dateIso: null }] } :
+      dateRange === "past"     ? { dateIso: { lt: todayIso } } :
+      {};
+    const orderBy =
+      dateRange === "upcoming" ? [{ dateIso: "asc" as const }, { timeSlot: "asc" as const }] :
+      dateRange === "past"     ? [{ dateIso: "desc" as const }] :
+      [{ createdAt: "desc" as const }];
+
     const rows = await prisma.booking.findMany({
-      where: status && status !== "ALL" ? { status } : undefined,
-      orderBy: { createdAt: "desc" },
+      where: { ...statusFilter, ...dateFilter },
+      orderBy,
     });
     return (rows as import("@prisma/client").Booking[]).map((b) => ({
       ...b,

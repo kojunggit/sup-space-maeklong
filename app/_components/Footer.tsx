@@ -11,9 +11,9 @@ function FooterCol({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
-function Social({ label }: { label: string }) {
+function Social({ label, href }: { label: string; href: string }) {
   return (
-    <a href="#" style={{
+    <a href={href} target="_blank" rel="noopener noreferrer" style={{
       width: 36, height: 36, borderRadius: 999,
       background: "rgba(255,255,255,0.10)", color: "#fff",
       display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -36,28 +36,36 @@ export default function Footer() {
               พายซับบอร์ดริมแม่กลอง · มือใหม่ก็พายได้ · รวมถ่ายภาพ
             </p>
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-              <Social label="LINE" />
-              <Social label="IG" />
-              <Social label="FB" />
-              <Social label="TT" />
+              <Social label="LINE" href="https://line.me/R/ti/p/@256pyxrx" />
+              <Social label="WA"   href="https://wa.me/66837146958" />
+              <Social label="IG"   href="https://www.instagram.com/SUPSpaceMaeklong" />
+              <Social label="FB"   href="https://www.facebook.com/SUPSpaceMaeklong" />
+              <Social label="TT"   href="https://www.tiktok.com/@SUPSpaceMaeklong" />
             </div>
           </div>
 
           <FooterCol title="ที่ตั้ง">
-            <p style={muted}>คลองทองหลาง</p>
-            <p style={muted}>แม่กลอง · สมุทรสงคราม</p>
-            <p style={muted}>74000</p>
+            <p style={muted}>5/1 ม. 2 ต.ยายแดง</p>
+            <p style={muted}>อ.บางคนที จ.สมุทรสงคราม 75120</p>
+            <a
+              href="https://maps.app.goo.gl/8Efgsjp3EocP9gRb9"
+              target="_blank" rel="noopener noreferrer"
+              style={{ ...muted, color: "var(--sup-orange)", textDecoration: "none", display: "inline-block", marginTop: 4 }}
+            >
+              📍 ดูแผนที่ →
+            </a>
           </FooterCol>
 
           <FooterCol title="เวลาเปิด">
-            <p style={muted}>จ. – ศ. · 7:00 – 18:00</p>
-            <p style={muted}>ส. – อา. · 6:00 – 19:00</p>
-            <p style={muted}>ปิดเมื่อฝนตกหนัก</p>
+            <p style={muted}>7.00 น. – 18.00 น.</p>
+            <p style={{ ...muted, fontSize: 12, color: "rgba(255,255,255,0.55)" }}>กรุณานัดหมายล่วงหน้า</p>
           </FooterCol>
 
           <FooterCol title="ติดต่อ">
-            <p style={{ ...muted, fontFamily: "var(--font-inter)", fontSize: 17, fontWeight: 700, color: "#fff", letterSpacing: "0.02em" }}>083 714 6958</p>
-            <p style={muted}>hello@supspacemaeklong.com</p>
+            <p style={{ ...muted, fontFamily: "var(--font-inter)", fontSize: 17, fontWeight: 700, color: "#fff", letterSpacing: "0.02em" }}>083-714-6958</p>
+            <p style={muted}>mrkosit@gmail.com</p>
+            <p style={muted}>LINE : @256pyxrx</p>
+            <p style={muted}>WhatsApp : 083-714-6958</p>
             <a href="#book" className="btn btn-primary" style={{ marginTop: 10, padding: "10px 20px", fontSize: 13 }}>จองทริปเลย</a>
           </FooterCol>
         </div>

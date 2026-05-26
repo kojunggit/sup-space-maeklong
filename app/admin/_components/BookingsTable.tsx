@@ -19,12 +19,13 @@ const STATUS_META: Record<string, { label: string; bg: string; color: string }> 
   CANCELLED: { label: "ยกเลิก",    bg: "#FFF1F0", color: "#CF1322" },
 };
 
-type FilterStatus = "ALL" | "PENDING" | "CONFIRMED" | "CANCELLED";
-const FILTERS: { id: FilterStatus; label: string }[] = [
+type FilterStatus = "ALL" | "PENDING" | "CONFIRMED" | "CANCELLED" | "PAST";
+const FILTERS: { id: FilterStatus; label: string; past?: boolean }[] = [
   { id: "ALL",       label: "ทั้งหมด" },
   { id: "PENDING",   label: "รอยืนยัน" },
   { id: "CONFIRMED", label: "ยืนยันแล้ว" },
   { id: "CANCELLED", label: "ยกเลิก" },
+  { id: "PAST",      label: "🏁 ทริปที่จบไปแล้ว", past: true },
 ];
 
 // ─── Grouping ─────────────────────────────────────────────────────────────────
@@ -265,26 +266,30 @@ function GroupCard({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
-  bookings: BookingRecord[];
+  upcomingBookings: BookingRecord[];
+  pastBookings:     BookingRecord[];
 }
 
-export default function BookingsTable({ bookings: initial }: Props) {
-  const [filter, setFilter]          = useState<FilterStatus>("ALL");
-  const [bookings, setBookings]      = useState(initial);
-  const [isPending, startTransition] = useTransition();
+export default function BookingsTable({ upcomingBookings: initialUpcoming, pastBookings: initialPast }: Props) {
+  const [filter, setFilter]              = useState<FilterStatus>("ALL");
+  const [upcomingBookings, setUpcoming]  = useState(initialUpcoming);
+  const [isPending, startTransition]     = useTransition();
   const router = useRouter();
 
-  // Filter first, then group
-  const filtered = filter === "ALL" ? bookings : bookings.filter((b) => b.status === filter);
-  const groups   = buildGroups(filtered);
+  const isPast = filter === "PAST";
 
-  // Counts on UNFILTERED data for the tab badges
+  // Upcoming: filter by status then group
+  const upcomingFiltered = filter === "ALL" || isPast
+    ? upcomingBookings
+    : upcomingBookings.filter((b) => b.status === filter);
+  const groups = isPast ? buildGroups(initialPast) : buildGroups(upcomingFiltered);
+
+  // Counts on upcoming (unfiltered) for status tabs; past count for PAST tab
   const counts: Record<string, number> = {};
-  bookings.forEach((b) => { counts[b.status] = (counts[b.status] ?? 0) + 1; });
+  upcomingBookings.forEach((b) => { counts[b.status] = (counts[b.status] ?? 0) + 1; });
 
   const handleStatusChange = (id: string, status: "PENDING" | "CONFIRMED" | "CANCELLED") => {
-    // Optimistic update
-    setBookings((prev) => prev.map((b) => b.id === id ? { ...b, status } : b));
+    setUpcoming((prev) => prev.map((b) => b.id === id ? { ...b, status } : b));
     startTransition(async () => {
       const result = await updateBookingStatus(id, status);
       if (!result.ok) router.refresh();
@@ -294,34 +299,44 @@ export default function BookingsTable({ bookings: initial }: Props) {
   return (
     <div style={{ padding: "16px 24px 40px" }}>
       {/* Filter tabs */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-        {FILTERS.map((f) => {
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        {FILTERS.map((f, i) => {
           const sel   = filter === f.id;
-          const count = f.id === "ALL" ? bookings.length : (counts[f.id] ?? 0);
+          const count = f.id === "PAST"
+            ? initialPast.length
+            : f.id === "ALL" ? upcomingBookings.length : (counts[f.id] ?? 0);
+          const accentColor = f.past ? "var(--fg-3)" : "var(--sup-teal)";
+          const accentBg    = f.past ? "var(--sand-100, #F0EFE7)" : "var(--teal-50)";
           return (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              style={{
-                padding: "8px 16px", borderRadius: 999, border: "1.5px solid",
-                borderColor: sel ? "var(--sup-teal)" : "var(--border-2)",
-                background: sel ? "var(--teal-50)" : "#fff",
-                color: sel ? "var(--sup-teal)" : "var(--fg-2)",
-                fontFamily: "var(--font-kanit)", fontSize: 13, fontWeight: sel ? 700 : 500,
-                cursor: "pointer", transition: "all 160ms",
-                display: "flex", alignItems: "center", gap: 6,
-              }}
-            >
-              {f.label}
-              <span style={{
-                fontFamily: "var(--font-inter)", fontSize: 11, fontWeight: 700,
-                background: sel ? "var(--sup-teal)" : "var(--border-2)",
-                color: sel ? "#fff" : "var(--fg-3)",
-                borderRadius: 999, padding: "1px 7px", minWidth: 20, textAlign: "center",
-              }}>
-                {count}
-              </span>
-            </button>
+            <>
+              {/* Divider before PAST tab */}
+              {f.past && (
+                <div key="divider" style={{ width: 1, height: 24, background: "var(--border-2)", margin: "0 4px" }} />
+              )}
+              <button
+                key={f.id}
+                onClick={() => setFilter(f.id)}
+                style={{
+                  padding: "8px 16px", borderRadius: 999, border: "1.5px solid",
+                  borderColor: sel ? accentColor : "var(--border-2)",
+                  background: sel ? accentBg : "#fff",
+                  color: sel ? (f.past ? "var(--fg-2)" : "var(--sup-teal)") : "var(--fg-2)",
+                  fontFamily: "var(--font-kanit)", fontSize: 13, fontWeight: sel ? 700 : 500,
+                  cursor: "pointer", transition: "all 160ms",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}
+              >
+                {f.label}
+                <span style={{
+                  fontFamily: "var(--font-inter)", fontSize: 11, fontWeight: 700,
+                  background: sel ? accentColor : "var(--border-2)",
+                  color: sel ? "#fff" : "var(--fg-3)",
+                  borderRadius: 999, padding: "1px 7px", minWidth: 20, textAlign: "center",
+                }}>
+                  {count}
+                </span>
+              </button>
+            </>
           );
         })}
         {isPending && (
@@ -334,10 +349,10 @@ export default function BookingsTable({ bookings: initial }: Props) {
       {/* Grouped cards */}
       {groups.length === 0 ? (
         <div style={{ textAlign: "center", padding: "48px 0", color: "var(--fg-4)", fontFamily: "var(--font-kanit)", fontSize: 16 }}>
-          ไม่มีการจองในหมวดนี้
+          {isPast ? "ยังไม่มีทริปที่ผ่านไปแล้ว" : "ไม่มีการจองในหมวดนี้"}
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "grid", gap: 10, opacity: isPast ? 0.75 : 1 }}>
           {groups.map((group) => (
             <GroupCard key={group.key} group={group} onStatusChange={handleStatusChange} />
           ))}
