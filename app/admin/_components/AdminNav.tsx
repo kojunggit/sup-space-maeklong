@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const MENU = [
-  { href: "/admin/dashboard", label: "Dashboard",  icon: "📊" },
-  { href: "/admin/bookings",  label: "การจอง",     icon: "📋" },
-  { href: "/admin/settings",  label: "ตั้งค่า",     icon: "⚙️" },
+  { href: "/admin/dashboard",      label: "Dashboard",    icon: "📊" },
+  { href: "/admin/bookings",       label: "การจอง",       icon: "📋" },
+  { href: "/admin/special-trips",  label: "ทริปพิเศษ",    icon: "✨" },
+  { href: "/admin/settings",       label: "ตั้งค่า",       icon: "⚙️" },
 ];
 
 export default function AdminNav() {

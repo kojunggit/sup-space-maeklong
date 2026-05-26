@@ -36,6 +36,14 @@ export interface UpcomingTrip {
   joined: number;
   max: number;
   host: string;
+  // Special trip fields (only set when isSpecial = true)
+  isSpecial?:            boolean;
+  specialTripId?:        string;
+  specialName?:          string;
+  specialDescription?:   string;
+  specialRentalPrice?:   number;
+  specialOwnBoardPrice?: number;
+  specialLocation?:      string;
 }
 
 export interface TimeSlot {
