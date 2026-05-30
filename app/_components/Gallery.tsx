@@ -10,6 +10,16 @@ const SHOTS = [
   { src: "/images/KOSI6162.jpg", cap: "กลุ่มเพื่อน"               },
   { src: "/images/KOSI6383.jpg", cap: "ผจญภัยริมคลอง", big: true  },
   { src: "/images/KOSI6260.jpg", cap: "พายยามเช้า"               },
+  { src: "/images/KOSI4884.jpg", cap: "สายน้ำยามบ่าย", big: true  },
+  { src: "/images/KOSI1064.jpg", cap: "ริมคลองแม่กลอง"           },
+  { src: "/images/KOSI3797.jpg", cap: "วิถีชุมชน"                 },
+  { src: "/images/KOSI4709.jpg", cap: "พายเป็นหมู่คณะ"           },
+  { src: "/images/KOSI3997.jpg", cap: "สวนมะพร้าวริมน้ำ"         },
+  { src: "/images/KOSI4923.jpg", cap: "ช่วงเวลาสงบ",   big: true  },
+  { src: "/images/KOSI4808.jpg", cap: "ออกผจญภัย"                 },
+  { src: "/images/KOSI5933.jpg", cap: "ธรรมชาติสองฝั่ง"          },
+  { src: "/images/KOSI5971.jpg", cap: "แสงเช้าริมคลอง"           },
+  { src: "/images/KOSI6689.jpg", cap: "ความทรงจำบนน้ำ"           },
 ];
 
 function Cell({ src, cap, big }: { src: string; cap: string; big?: boolean }) {
