@@ -3,6 +3,8 @@ import Link from "next/link";
 
 interface HeroProps {
   onBookClick: () => void;
+  rating: number;
+  reviewCount: number;
 }
 
 const TRUST_POINTS = ["มือใหม่พายได้", "ใกล้กรุงเทพฯ", "มีผู้สอนดูแลตลอดทริป", "รวมถ่ายภาพ", "อุปกรณ์ความปลอดภัย"];
@@ -14,7 +16,7 @@ const AVATARS = [
   { initials: "S", bg: "#B85F00" },
 ];
 
-export default function Hero({ onBookClick }: HeroProps) {
+export default function Hero({ onBookClick, rating, reviewCount }: HeroProps) {
   return (
     <section id="home" className="hero">
       {/* Optimized LCP background via next/image (alt carries English SEO keywords) */}
@@ -82,8 +84,8 @@ export default function Hero({ onBookClick }: HeroProps) {
             <div className="hero__proof-text">
               <span className="hero__rating">
                 <span aria-hidden="true" className="hero__stars">★★★★★</span>
-                <strong>4.9</strong>
-                <span className="hero__proof-muted">จาก 312 รีวิว Google</span>
+                <strong>{rating.toFixed(1)}</strong>
+                <span className="hero__proof-muted">จาก {reviewCount.toLocaleString()} รีวิว Google</span>
               </span>
               <span className="hero__proof-muted">นักพายกว่า 1,200 คน ร่วมทริปกับเรา</span>
             </div>

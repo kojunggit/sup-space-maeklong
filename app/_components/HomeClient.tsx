@@ -8,11 +8,14 @@ import UpcomingTrips from "./UpcomingTrips";
 import Services from "./Services";
 import About from "./About";
 import Gallery from "./Gallery";
+import Reviews from "./Reviews";
 import Footer from "./Footer";
 import { type UpcomingTrip } from "./trips-data";
+import type { PlaceData } from "@/app/lib/google-places";
 
 interface HomeClientProps {
   initialTrips: UpcomingTrip[];
+  placeData: PlaceData;
 }
 
 function scrollToId(id: string, block: "start" | "center" = "start") {
@@ -26,7 +29,7 @@ function scrollToId(id: string, block: "start" | "center" = "start") {
   window.scrollTo({ top: Math.max(0, offset), behavior: "smooth" });
 }
 
-export default function HomeClient({ initialTrips }: HomeClientProps) {
+export default function HomeClient({ initialTrips, placeData }: HomeClientProps) {
   const [joinTrip, setJoinTrip] = useState<UpcomingTrip | null>(null);
 
   const onBookClick = useCallback(() => scrollToId("book", "center"), []);
@@ -55,7 +58,7 @@ export default function HomeClient({ initialTrips }: HomeClientProps) {
   return (
     <div>
       <Header onBookClick={onBookClick} />
-      <Hero onBookClick={onBookClick} />
+      <Hero onBookClick={onBookClick} rating={placeData.rating} reviewCount={placeData.reviewCount} />
       <BookingSection joinTrip={joinTrip} onClearJoin={clearJoin} />
       <Services />
       <UpcomingTrips trips={initialTrips} onJoin={handleJoin} />
@@ -64,6 +67,7 @@ export default function HomeClient({ initialTrips }: HomeClientProps) {
       </div>
       <About />
       <Gallery />
+      <Reviews reviews={placeData.fiveStarReviews} rating={placeData.rating} reviewCount={placeData.reviewCount} />
       <Footer />
     </div>
   );
