@@ -26,6 +26,10 @@ function ReviewCard({ review }: { review: PlaceReview }) {
       display: "flex",
       flexDirection: "column",
       gap: 14,
+      flex: "0 0 auto",
+      width: 340,
+      maxWidth: "82vw",
+      scrollSnapAlign: "start",
       transition: "box-shadow 220ms var(--ease-out)",
     }}
       className="review-card"
@@ -123,16 +127,29 @@ export default function Reviews({ reviews, rating, reviewCount }: ReviewsProps) 
           </div>
         </div>
 
-        {/* Review cards */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-          gap: 20,
-        }}>
+        {/* Review cards — horizontal scroll */}
+        <div
+          className="reviews-scroll"
+          role="list"
+          aria-label="รีวิวจากลูกค้า"
+          style={{
+            display: "flex",
+            gap: 20,
+            overflowX: "auto",
+            scrollSnapType: "x mandatory",
+            paddingBottom: 14,
+            marginInline: "-24px",
+            paddingInline: 24,
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
           {reviews.map((review, i) => (
             <ReviewCard key={i} review={review} />
           ))}
         </div>
+        <p style={{ textAlign: "center", marginTop: 4, fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 13, color: "var(--fg-4)" }}>
+          ← เลื่อนเพื่ออ่านเพิ่มเติม →
+        </p>
 
         {/* Link to Google Maps */}
         <div style={{ textAlign: "center", marginTop: 36 }}>
@@ -150,6 +167,10 @@ export default function Reviews({ reviews, rating, reviewCount }: ReviewsProps) 
 
       <style>{`
         .review-card:hover { box-shadow: var(--shadow-md) !important; }
+        .reviews-scroll { scrollbar-width: thin; scrollbar-color: var(--teal-200) transparent; }
+        .reviews-scroll::-webkit-scrollbar { height: 8px; }
+        .reviews-scroll::-webkit-scrollbar-thumb { background: var(--teal-200); border-radius: 999px; }
+        .reviews-scroll::-webkit-scrollbar-track { background: transparent; }
       `}</style>
     </section>
   );

@@ -11,10 +11,21 @@ const inputStyle: React.CSSProperties = {
   background: "#fff", color: "var(--fg-1)", width: "100%", outline: "none",
 };
 
+const sortSlots = (arr: ClosedSlot[]) =>
+  [...arr].sort(
+    (a, b) =>
+      a.date.localeCompare(b.date) ||
+      (a.startHour ?? a.hour ?? "").localeCompare(b.startHour ?? b.hour ?? ""),
+  );
+
+type Mode = "all" | "range";
+
 export default function ClosedSlotsSettings({ initialSlots }: { initialSlots: ClosedSlot[] }) {
   const [slots, setSlots]   = useState(initialSlots);
   const [date, setDate]     = useState("");
-  const [hour, setHour]     = useState<string>("all");   // "all" = whole day
+  const [mode, setMode]     = useState<Mode>("all");        // "all" = whole day, "range" = time window
+  const [startHour, setStartHour] = useState<string>(TIME_SLOTS[0]);
+  const [endHour, setEndHour]     = useState<string>(TIME_SLOTS[TIME_SLOTS.length - 1]);
   const [label, setLabel]   = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -24,19 +35,25 @@ export default function ClosedSlotsSettings({ initialSlots }: { initialSlots: Cl
 
   const handleAdd = () => {
     if (!date || isPending) return;
+    // Normalise the range so start is never after end
+    const lo = startHour <= endHour ? startHour : endHour;
+    const hi = startHour <= endHour ? endHour : startHour;
     const optimistic: ClosedSlot = {
       id:    `opt-${Date.now()}`,
       date,
-      hour:  hour === "all" ? undefined : hour,
+      startHour: mode === "range" ? lo : undefined,
+      endHour:   mode === "range" ? hi : undefined,
       label: label || undefined,
     };
-    setSlots((prev) => [...prev, optimistic].sort((a, b) => a.date.localeCompare(b.date) || (a.hour ?? "").localeCompare(b.hour ?? "")));
-    setDate(""); setHour("all"); setLabel("");
+    setSlots((prev) => sortSlots([...prev, optimistic]));
+    setDate(""); setMode("all"); setLabel("");
+    setStartHour(TIME_SLOTS[0]); setEndHour(TIME_SLOTS[TIME_SLOTS.length - 1]);
     startTransition(async () => {
       const result = await addClosedSlot({
-        date:  optimistic.date,
-        hour:  optimistic.hour,
-        label: optimistic.label,
+        date:      optimistic.date,
+        startHour: optimistic.startHour,
+        endHour:   optimistic.endHour,
+        label:     optimistic.label,
       });
       if (!result.ok) {
         setSlots((prev) => prev.filter((s) => s.id !== optimistic.id));
@@ -52,12 +69,19 @@ export default function ClosedSlotsSettings({ initialSlots }: { initialSlots: Cl
     startTransition(async () => {
       const result = await removeClosedSlot(id);
       if (!result.ok && removed) {
-        setSlots((prev) =>
-          [...prev, removed].sort((a, b) => a.date.localeCompare(b.date) || (a.hour ?? "").localeCompare(b.hour ?? ""))
-        );
+        setSlots((prev) => sortSlots([...prev, removed]));
       }
     });
   };
+
+  // Human-readable description of a slot's closed time
+  const slotTimeLabel = (s: ClosedSlot): string => {
+    if (s.startHour && s.endHour) return `${s.startHour}–${s.endHour} น.`;
+    if (s.startHour) return `${s.startHour} น.`;
+    if (s.hour) return `${s.hour} น.`;
+    return "ทั้งวัน";
+  };
+  const isPartial = (s: ClosedSlot) => !!(s.hour || s.startHour);
 
   // Format ISO date to Thai display
   const fmtDate = (iso: string) => {
@@ -85,15 +109,35 @@ export default function ClosedSlotsSettings({ initialSlots }: { initialSlots: Cl
             />
           </div>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)", marginBottom: 5 }}>เวลา</div>
-            <select value={hour} onChange={(e) => setHour(e.target.value)} style={inputStyle}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)", marginBottom: 5 }}>ปิดบริการ</div>
+            <select value={mode} onChange={(e) => setMode(e.target.value as Mode)} style={inputStyle}>
               <option value="all">ทั้งวัน</option>
-              {TIME_SLOTS.map((h) => (
-                <option key={h} value={h}>{h} น.</option>
-              ))}
+              <option value="range">ระบุช่วงเวลา</option>
             </select>
           </div>
         </div>
+
+        {mode === "range" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 8, alignItems: "end" }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)", marginBottom: 5 }}>ตั้งแต่</div>
+              <select value={startHour} onChange={(e) => setStartHour(e.target.value)} style={inputStyle}>
+                {TIME_SLOTS.map((h) => (
+                  <option key={h} value={h}>{h} น.</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ paddingBottom: 9, color: "var(--fg-4)", fontSize: 13 }}>ถึง</div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)", marginBottom: 5 }}>ถึง</div>
+              <select value={endHour} onChange={(e) => setEndHour(e.target.value)} style={inputStyle}>
+                {TIME_SLOTS.map((h) => (
+                  <option key={h} value={h}>{h} น.</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         <div>
           <div style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)", marginBottom: 5 }}>บันทึก <span style={{ fontWeight: 300, color: "var(--fg-4)" }}>(ไม่บังคับ)</span></div>
@@ -137,8 +181,8 @@ export default function ClosedSlotsSettings({ initialSlots }: { initialSlots: Cl
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   gap: 10, padding: "10px 14px",
-                  background: s.hour ? "var(--sand-50)" : "#FFF7E6",
-                  borderRadius: 8, border: `1px solid ${s.hour ? "var(--border-1)" : "#FFD591"}`,
+                  background: isPartial(s) ? "var(--sand-50)" : "#FFF7E6",
+                  borderRadius: 8, border: `1px solid ${isPartial(s) ? "var(--border-1)" : "#FFD591"}`,
                 }}
               >
                 <div style={{ minWidth: 0 }}>
@@ -148,12 +192,12 @@ export default function ClosedSlotsSettings({ initialSlots }: { initialSlots: Cl
                     </span>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                      background: s.hour ? "var(--teal-50)" : "#FFF7E6",
-                      color: s.hour ? "var(--sup-teal)" : "#D46B08",
-                      border: `1px solid ${s.hour ? "var(--sup-teal)" : "#FFD591"}`,
+                      background: isPartial(s) ? "var(--teal-50)" : "#FFF7E6",
+                      color: isPartial(s) ? "var(--sup-teal)" : "#D46B08",
+                      border: `1px solid ${isPartial(s) ? "var(--sup-teal)" : "#FFD591"}`,
                       whiteSpace: "nowrap",
                     }}>
-                      {s.hour ? `${s.hour} น.` : "ทั้งวัน"}
+                      {slotTimeLabel(s)}
                     </span>
                   </div>
                   {s.label && (

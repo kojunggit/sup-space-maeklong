@@ -8,6 +8,31 @@ export const TIME_SLOTS = [
   "12:00","13:00","14:00","15:00","16:00","17:00",
 ] as const;
 
+/** Minimal shape of an admin "closed slot" — shared by client & server */
+export interface ClosedSlotShape {
+  date:       string;   // ISO "2026-12-31"
+  hour?:      string;   // legacy single hour "09:00"
+  startHour?: string;   // range start "09:00"
+  endHour?:   string;   // range end   "12:00"
+}
+
+/** True when the whole day is closed (no specific hour or range given) */
+export function isDayClosed(slots: ClosedSlotShape[], date: string): boolean {
+  return slots.some((s) => s.date === date && !s.hour && !s.startHour && !s.endHour);
+}
+
+/** True when a specific hour ("09:00") is closed on the given date */
+export function isHourClosed(slots: ClosedSlotShape[], date: string, hour: string): boolean {
+  return slots.some((s) => {
+    if (s.date !== date) return false;
+    if (!s.hour && !s.startHour && !s.endHour) return true;           // whole day
+    if (s.hour) return s.hour === hour;                              // legacy single hour
+    if (s.startHour && s.endHour) return hour >= s.startHour && hour <= s.endHour; // range
+    if (s.startHour) return hour === s.startHour;
+    return false;
+  });
+}
+
 /** Display a raw timeSlot value (handles both legacy and new format) */
 export function formatSlot(slot: string): string {
   if (slot === "MORNING")   return "รอบเช้า";

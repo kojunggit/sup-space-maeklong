@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { TIME_SLOTS, ROUTES_BY_ID } from "@/app/_components/trips-data";
+import {
+  TIME_SLOTS, ROUTES_BY_ID,
+  isDayClosed, isHourClosed, type ClosedSlotShape,
+} from "@/app/_components/trips-data";
 
 function getPrisma() {
   const adapter = new PrismaPg(process.env.PRISMA_DATABASE_URL!);
@@ -18,21 +21,36 @@ function parseHour(slot: string): number | null {
   return isNaN(n) ? null : n;
 }
 
-function allAvailable(days = 14) {
+/** Parse an ISO date (YYYY-MM-DD) at local midnight; falls back to today */
+function parseStart(value: string | null): Date {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  if (!value) return today;
+  const d = new Date(value + "T00:00:00");
+  if (isNaN(d.getTime())) return today;
+  d.setHours(0, 0, 0, 0);
+  // Never start before today
+  return d < today ? today : d;
+}
+
+function allAvailable(start: Date, days: number) {
   return Array.from({ length: days }, (_, i) => {
-    const d = new Date(today.getTime() + i * 86_400_000);
+    const d = new Date(start.getTime() + i * 86_400_000);
     const hours = Object.fromEntries(TIME_SLOTS.map((h) => [h, true]));
     return { date: toIso(d), hours, available: true };
   });
 }
 
-export async function GET() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayIso  = toIso(today);
-  const limitDate = new Date(today.getTime() + 14 * 86_400_000);
+export async function GET(req: NextRequest) {
+  const params = req.nextUrl.searchParams;
+
+  const start = parseStart(params.get("start"));
+  // Window length — supports unlimited advance booking by requesting any month.
+  // Clamp to a sane range to protect the DB query.
+  const days = Math.min(Math.max(parseInt(params.get("days") ?? "14", 10) || 14, 1), 92);
+
+  const startIso = toIso(start);
+  const limitDate = new Date(start.getTime() + days * 86_400_000);
   const limitIso  = toIso(limitDate);
 
   try {
@@ -40,15 +58,15 @@ export async function GET() {
 
     // Closed slots from settings
     const closedRow = await prisma.setting.findUnique({ where: { key: "closedSlots" } }).catch(() => null);
-    const closedSlots: Array<{ date: string; hour?: string }> = closedRow
-      ? (JSON.parse(closedRow.value) as Array<{ date: string; hour?: string }>)
+    const closedSlots: ClosedSlotShape[] = closedRow
+      ? (JSON.parse(closedRow.value) as ClosedSlotShape[])
       : [];
 
     // Fetch all non-cancelled bookings in range (need routeId for duration)
     const rows = await prisma.booking.findMany({
       where: {
         status:  { in: ["CONFIRMED", "PENDING"] },
-        dateIso: { gte: todayIso, lt: limitIso },
+        dateIso: { gte: startIso, lt: limitIso },
       },
       select: { dateIso: true, timeSlot: true, routeId: true },
     });
@@ -67,20 +85,19 @@ export async function GET() {
       }
     }
 
-    const result = Array.from({ length: 14 }, (_, i) => {
-      const d   = new Date(today.getTime() + i * 86_400_000);
+    const result = Array.from({ length: days }, (_, i) => {
+      const d   = new Date(start.getTime() + i * 86_400_000);
       const iso = toIso(d);
 
-      const isDayClosed = closedSlots.some((s) => s.date === iso && !s.hour);
+      const dayClosed = isDayClosed(closedSlots, iso);
 
       const hours: Record<string, boolean> = {};
       for (const h of TIME_SLOTS) {
-        if (isDayClosed) {
+        if (dayClosed) {
           hours[h] = false;
         } else {
-          const hourNum      = parseInt(h.split(":")[0], 10);
-          const isHourClosed = closedSlots.some((s) => s.date === iso && s.hour === h);
-          hours[h]           = !isHourClosed && !occupied.has(`${iso}|${hourNum}`);
+          const hourNum = parseInt(h.split(":")[0], 10);
+          hours[h] = !isHourClosed(closedSlots, iso, h) && !occupied.has(`${iso}|${hourNum}`);
         }
       }
 
@@ -93,7 +110,7 @@ export async function GET() {
     });
   } catch (err) {
     console.error("Availability error:", err);
-    return NextResponse.json(allAvailable(), {
+    return NextResponse.json(allAvailable(start, days), {
       headers: { "Cache-Control": "public, max-age=60" },
     });
   }
