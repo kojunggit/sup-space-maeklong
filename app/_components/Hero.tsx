@@ -5,7 +5,7 @@ interface HeroProps {
   onBookClick: () => void;
 }
 
-const TRUST_POINTS = ["มือใหม่พายได้", "ใกล้กรุงเทพฯ", "มีผู้สอนดูแลตลอดทริป"];
+const TRUST_POINTS = ["มือใหม่พายได้", "ใกล้กรุงเทพฯ", "มีผู้สอนดูแลตลอดทริป", "รวมถ่ายภาพ", "อุปกรณ์ความปลอดภัย"];
 
 const AVATARS = [
   { initials: "ก", bg: "#008080" },
