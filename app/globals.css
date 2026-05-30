@@ -121,7 +121,10 @@
     text-wrap: balance;
   }
   .section-title .accent { color: var(--sup-teal); white-space: nowrap; }
-  @media (max-width: 760px) { .section-title { font-size: 30px; } }
+  @media (max-width: 760px) {
+    .section-title { font-size: 30px; }
+    .section-title .accent { white-space: normal; }
+  }
 
   .section-sub {
     font-size: 17px;
