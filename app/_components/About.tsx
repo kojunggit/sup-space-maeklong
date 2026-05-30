@@ -15,7 +15,7 @@ export default function About({ rating, reviewCount }: { rating: number; reviewC
       <div className="container" style={{ position: "relative" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr", gap: 64, alignItems: "center" }} className="about-grid">
           <div style={{ position: "relative" }}>
-            <div style={{ borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-xl)", aspectRatio: "4/5", background: "url('/images/KOSI6383.jpg') center/cover" }} />
+            <div style={{ borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-xl)", aspectRatio: "4/5", background: "url('/images/photographer-sup.jpg') 56% center/cover" }} />
             <div style={{ position: "absolute", bottom: -28, left: -24, background: "#fff", padding: "14px 18px 14px 14px", borderRadius: 12, boxShadow: "var(--shadow-lg)", display: "flex", alignItems: "center", gap: 12, transform: "rotate(-3deg)" }}>
               <div style={{ width: 44, height: 44, borderRadius: 999, background: "var(--sup-orange)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-inter)", fontSize: 18, fontWeight: 700, color: "#fff" }}>{rating.toFixed(1)}</div>
               <div>
