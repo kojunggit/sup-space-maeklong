@@ -234,10 +234,10 @@ export async function getUpcomingTrips(): Promise<UpcomingTrip[]> {
     }
 
     const trips: UpcomingTrip[] = [];
-    for (const [, bookings] of groups) {
+    for (const bookings of Array.from(groups.values())) {
       const first = bookings[0];
       const d = new Date(first.dateIso! + "T00:00:00");
-      const joined = bookings.reduce((sum, b) => sum + b.paddlers, 0);
+      const joined = bookings.reduce((sum: number, b) => sum + b.paddlers, 0);
       trips.push({
         id:       `${first.dateIso}|${first.timeSlot}|${first.routeId}`,
         date:     `${THAI_DAYS_SHORT[d.getDay()]} ${d.getDate()} ${THAI_MONTHS_SHORT[d.getMonth()]}`,
