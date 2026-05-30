@@ -1,6 +1,6 @@
-import Link from "next/link";
 import Image from "next/image";
 import { ROUTES, CATEGORIES, type Route } from "@/app/_components/trips-data";
+import Footer from "@/app/_components/Footer";
 
 // ─── Rich descriptions (from PDF) ─────────────────────────────────────────────
 
@@ -437,37 +437,7 @@ export default function RoutesPage() {
         </section>
       </main>
 
-      {/* ── Footer ──────────────────────────────────────────────────────────── */}
-      <footer style={{
-        background: "var(--sup-dark)", color: "#fff",
-        padding: "48px 24px 32px",
-      }}>
-        <div className="container" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <Image src="/logo-mark.png" alt="SUP Space Maeklong" width={52} height={52} style={{ height: 52, width: "auto" }} />
-            <div>
-              <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 700, fontSize: 16, color: "#fff" }}>
-                SUP Space Maeklong
-              </div>
-              <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 13, color: "rgba(255,255,255,0.6)", marginTop: 3 }}>
-                คลองทองหลาง · แม่กลอง · สมุทรสงคราม 74000
-              </div>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <a href="/" style={{ fontFamily: "var(--font-kanit)", fontSize: 14, color: "rgba(255,255,255,0.6)", textDecoration: "none" }}>หน้าหลัก</a>
-            <a href="/#book" className="btn btn-primary" style={{ padding: "10px 20px", fontSize: 14 }}>จองทริปเลย</a>
-          </div>
-        </div>
-        <div className="container" style={{ marginTop: 32, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-          <span style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-            © SUP Space Maeklong · พายซับมาตั้งแต่ 2562
-          </span>
-          <span style={{ fontFamily: "var(--font-kanit)", fontWeight: 400, fontSize: 12, color: "var(--sup-orange)" }}>
-            เจอกันที่แม่กลอง
-          </span>
-        </div>
-      </footer>
+      <Footer />
 
       <style>{`
         .route-card:hover {
