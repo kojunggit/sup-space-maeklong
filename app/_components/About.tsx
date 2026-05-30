@@ -7,7 +7,7 @@ function Stat({ n, label }: { n: string; label: string }) {
   );
 }
 
-export default function About() {
+export default function About({ rating, reviewCount }: { rating: number; reviewCount: number }) {
   return (
     <section id="about" style={{ background: "var(--teal-50)", position: "relative", overflow: "hidden" }} className="section-pad">
       <div style={{ position: "absolute", top: -120, right: -100, width: 360, height: 360, borderRadius: "50%", background: "var(--sup-orange)", opacity: 0.10, filter: "blur(8px)" }} />
@@ -17,10 +17,10 @@ export default function About() {
           <div style={{ position: "relative" }}>
             <div style={{ borderRadius: 16, overflow: "hidden", boxShadow: "var(--shadow-xl)", aspectRatio: "4/5", background: "url('/images/KOSI6383.jpg') center/cover" }} />
             <div style={{ position: "absolute", bottom: -28, left: -24, background: "#fff", padding: "14px 18px 14px 14px", borderRadius: 12, boxShadow: "var(--shadow-lg)", display: "flex", alignItems: "center", gap: 12, transform: "rotate(-3deg)" }}>
-              <div style={{ width: 44, height: 44, borderRadius: 999, background: "var(--sup-orange)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-inter)", fontSize: 18, fontWeight: 700, color: "#fff" }}>4.9</div>
+              <div style={{ width: 44, height: 44, borderRadius: 999, background: "var(--sup-orange)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-inter)", fontSize: 18, fontWeight: 700, color: "#fff" }}>{rating.toFixed(1)}</div>
               <div>
                 <div style={{ fontFamily: "var(--font-inter)", fontSize: 13, fontWeight: 600, color: "var(--fg-1)" }}>★★★★★</div>
-                <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 12, color: "var(--fg-3)" }}>312 รีวิว Google</div>
+                <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 12, color: "var(--fg-3)" }}>{reviewCount.toLocaleString()} รีวิว Google</div>
               </div>
             </div>
           </div>

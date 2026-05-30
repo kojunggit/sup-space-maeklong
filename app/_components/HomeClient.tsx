@@ -65,7 +65,7 @@ export default function HomeClient({ initialTrips, placeData }: HomeClientProps)
       <div aria-hidden="true" style={{ padding: "40px 0", display: "flex", justifyContent: "center" }}>
         <img src="/wave-divider.svg" alt="" style={{ width: "60%", maxWidth: 700, height: 60 }} />
       </div>
-      <About />
+      <About rating={placeData.rating} reviewCount={placeData.reviewCount} />
       <Gallery />
       <Reviews reviews={placeData.fiveStarReviews} rating={placeData.rating} reviewCount={placeData.reviewCount} />
       <Footer />
