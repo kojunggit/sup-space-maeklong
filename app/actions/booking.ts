@@ -3,7 +3,7 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { revalidatePath } from "next/cache";
-import { ROUTES_BY_ID } from "@/app/_components/trips-data";
+import { ROUTES_BY_ID, isHourClosed, type ClosedSlotShape } from "@/app/_components/trips-data";
 import { sendTelegramNotification, buildBookingMessage } from "@/app/lib/telegram-notify";
 import { getTelegramConfig } from "@/app/actions/settings";
 import { getActiveSpecialTrips } from "@/app/actions/special-trips";
@@ -29,8 +29,6 @@ export interface BookingPayload {
   timeSlot: string;
   routeId: string;
   paddlers: number;
-  weight: number;
-  skillLevel: string;
   photoPermission: string;
   total: number;
   guestName: string;
@@ -73,10 +71,8 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
     if (payload.dateIso) {
       const closedRow = await prisma.setting.findUnique({ where: { key: "closedSlots" } }).catch(() => null);
       if (closedRow) {
-        const closed = JSON.parse(closedRow.value) as Array<{ date: string; hour?: string }>;
-        const blocked = closed.some(
-          (s) => s.date === payload.dateIso && (!s.hour || s.hour === payload.timeSlot),
-        );
+        const closed = JSON.parse(closedRow.value) as ClosedSlotShape[];
+        const blocked = isHourClosed(closed, payload.dateIso, payload.timeSlot);
         if (blocked) {
           return { ok: false, error: "วันและเวลานี้ปิดให้บริการ กรุณาเลือกวันหรือเวลาอื่น" };
         }
@@ -127,8 +123,6 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
         specialTripId:   payload.specialTripId || null,
         boardChoice:     payload.boardChoice   || null,
         paddlers:        payload.paddlers,
-        weight:          payload.weight,
-        skillLevel:      payload.skillLevel,
         hasPhoto:        payload.photoPermission !== "notAllow",
         photoPermission: payload.photoPermission,
         total:           payload.total,
@@ -240,10 +234,10 @@ export async function getUpcomingTrips(): Promise<UpcomingTrip[]> {
     }
 
     const trips: UpcomingTrip[] = [];
-    for (const [, bookings] of groups) {
+    for (const bookings of Array.from(groups.values())) {
       const first = bookings[0];
       const d = new Date(first.dateIso! + "T00:00:00");
-      const joined = bookings.reduce((sum, b) => sum + b.paddlers, 0);
+      const joined = bookings.reduce((sum: number, b) => sum + b.paddlers, 0);
       trips.push({
         id:       `${first.dateIso}|${first.timeSlot}|${first.routeId}`,
         date:     `${THAI_DAYS_SHORT[d.getDay()]} ${d.getDate()} ${THAI_MONTHS_SHORT[d.getMonth()]}`,

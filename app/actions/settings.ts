@@ -43,10 +43,13 @@ export async function setMaxBoards(value: number): Promise<{ ok: boolean }> {
 // ─── Closed slots ─────────────────────────────────────────────────────────────
 
 export interface ClosedSlot {
-  id:     string;
-  date:   string;    // ISO "2026-12-31"
-  hour?:  string;    // "09:00" — if omitted the whole day is closed
-  label?: string;    // optional admin note
+  id:         string;
+  date:       string;    // ISO "2026-12-31"
+  hour?:      string;    // legacy single hour "09:00"
+  startHour?: string;    // range start "09:00" — closed from this hour…
+  endHour?:   string;    // …to this hour "12:00" (inclusive)
+  label?:     string;    // optional admin note
+  // If hour, startHour and endHour are all omitted → the whole day is closed
 }
 
 export async function getClosedSlots(): Promise<ClosedSlot[]> {

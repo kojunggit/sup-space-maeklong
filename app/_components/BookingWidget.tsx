@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
-  ROUTES, CATEGORIES, SKILLS, ROUTES_BY_ID,
+  ROUTES, CATEGORIES, ROUTES_BY_ID,
   PRIVATE_PHOTO_PRICE, TIME_SLOTS,
-  type UpcomingTrip, type RouteCategory, type SkillLevel,
+  type UpcomingTrip, type RouteCategory,
 } from "./trips-data";
 import { createBooking } from "../actions/booking";
 
@@ -12,6 +12,8 @@ import { createBooking } from "../actions/booking";
 
 const THAI_DAYS   = ["อา", "จ.", "อ.", "พ.", "พฤ", "ศ.", "ส."];
 const THAI_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+const THAI_MONTHS_FULL = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+const THAI_DOW = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
 function toIso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -20,12 +22,11 @@ function isoToLabel(iso: string): string {
   const d = new Date(iso + "T00:00:00");
   return `${THAI_DAYS[d.getDay()]} ${d.getDate()} ${THAI_MONTHS[d.getMonth()]}`;
 }
-function generateDays(count = 14) {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  return Array.from({ length: count }, (_, i) => {
-    const d = new Date(today.getTime() + i * 86_400_000);
-    return { iso: toIso(d), d: THAI_DAYS[d.getDay()], n: String(d.getDate()), sub: THAI_MONTHS[d.getMonth()] };
-  });
+function startOfMonth(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+function addMonths(d: Date, n: number): Date {
+  return new Date(d.getFullYear(), d.getMonth() + n, 1);
 }
 
 /** Format a raw timeSlot for display in confirmed state / summary */
@@ -88,46 +89,86 @@ function Row({ k, v, big, muted }: { k: string; v: string; big?: boolean; muted?
   );
 }
 
-// ─── Step 1: Date ─────────────────────────────────────────────────────────────
+// ─── Step 1: Date (calendar) ──────────────────────────────────────────────────
 
-function StepWhen({ dateIso, onSelect, availability, loading, weekOffset, setWeekOffset }: {
+function StepWhen({ dateIso, onSelect, availByDate, loading, viewMonth, setViewMonth }: {
   dateIso: string; onSelect: (iso: string) => void;
-  availability: AvailDay[]; loading: boolean;
-  weekOffset: number; setWeekOffset: (n: number) => void;
+  availByDate: Record<string, AvailDay>; loading: boolean;
+  viewMonth: Date; setViewMonth: (d: Date) => void;
 }) {
-  const allDays = generateDays(14);
-  const days = allDays.slice(weekOffset * 7, weekOffset * 7 + 7);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const thisMonth   = startOfMonth(today);
+  const monthStart  = startOfMonth(viewMonth);
+  const atFirstMonth = monthStart.getTime() <= thisMonth.getTime();
+
+  const year  = monthStart.getFullYear();
+  const month = monthStart.getMonth();
+  const firstDow     = monthStart.getDay();               // 0 = Sun
+  const daysInMonth  = new Date(year, month + 1, 0).getDate();
+
+  // Build calendar cells: leading blanks + each day of the month
+  const cells: (Date | null)[] = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let day = 1; day <= daysInMonth; day++) cells.push(new Date(year, month, day));
 
   return (
     <div>
       <Label>เลือกวันที่</Label>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <button onClick={() => setWeekOffset(0)} disabled={weekOffset === 0} className="btn btn-ghost" style={{ fontSize: 12, padding: "6px 12px", opacity: weekOffset === 0 ? 0.35 : 1 }}>← สัปดาห์นี้</button>
-        <span style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: "var(--fg-3)", fontWeight: 500 }}>{weekOffset === 0 ? "7 วันข้างหน้า" : "7 วันถัดไป"}</span>
-        <button onClick={() => setWeekOffset(1)} disabled={weekOffset === 1} className="btn btn-ghost" style={{ fontSize: 12, padding: "6px 12px", opacity: weekOffset === 1 ? 0.35 : 1 }}>สัปดาห์หน้า →</button>
+
+      {/* Month navigation */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <button onClick={() => !atFirstMonth && setViewMonth(addMonths(monthStart, -1))} disabled={atFirstMonth}
+          className="btn btn-ghost" style={{ fontSize: 18, padding: "4px 14px", opacity: atFirstMonth ? 0.3 : 1 }} aria-label="เดือนก่อนหน้า">←</button>
+        <span style={{ fontFamily: "var(--font-kanit)", fontWeight: 700, fontSize: 16, color: "var(--fg-1)" }}>
+          {THAI_MONTHS_FULL[month]} {year + 543}
+        </span>
+        <button onClick={() => setViewMonth(addMonths(monthStart, 1))}
+          className="btn btn-ghost" style={{ fontSize: 18, padding: "4px 14px" }} aria-label="เดือนถัดไป">→</button>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 8 }}>
-        {days.map((d) => {
-          const avail = availability.find((a) => a.date === d.iso);
-          const isAvail = loading || !avail || avail.available;
-          const selected = dateIso === d.iso;
+
+      {/* Day-of-week header */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 6 }}>
+        {THAI_DOW.map((d, i) => (
+          <div key={i} style={{ textAlign: "center", fontFamily: "var(--font-kanit)", fontSize: 11, fontWeight: 500, color: (i === 0 || i === 6) ? "var(--sup-orange)" : "var(--fg-3)" }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Day grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
+        {cells.map((cell, i) => {
+          if (!cell) return <div key={`blank-${i}`} />;
+          const iso       = toIso(cell);
+          const isPast    = cell < today;
+          const avail     = availByDate[iso];
+          const dayFull   = !!avail && !avail.available;
+          const disabled  = isPast || dayFull;
+          const selected  = dateIso === iso;
+          const isToday   = iso === toIso(today);
           return (
-            <button key={d.iso} onClick={() => isAvail && onSelect(d.iso)} disabled={!isAvail}
-              style={{ padding: "12px 4px", borderRadius: 10, position: "relative", cursor: isAvail ? "pointer" : "not-allowed", border: selected ? "2px solid var(--sup-orange)" : "1.5px solid var(--border-2)", background: selected ? "#FFF4E5" : (isAvail ? "#fff" : "var(--slate-100)"), color: selected ? "var(--orange-700)" : (isAvail ? "var(--fg-1)" : "var(--fg-4)"), opacity: isAvail ? 1 : 0.5, fontFamily: "var(--font-kanit)", transition: "all 180ms var(--ease-out)" }}>
-              <div style={{ fontSize: 12, fontWeight: 500, opacity: 0.7 }}>{d.d}</div>
-              <div style={{ fontFamily: "var(--font-inter)", fontSize: 20, fontWeight: 700, marginTop: 2 }}>{d.n}</div>
-              <div style={{ fontSize: 10, opacity: 0.65 }}>{d.sub}</div>
-              {!loading && avail && (
-                <div style={{ position: "absolute", bottom: 4, left: "50%", transform: "translateX(-50%)", width: 5, height: 5, borderRadius: 999, background: avail.available ? "var(--success)" : "var(--danger)" }} />
+            <button key={iso} onClick={() => !disabled && onSelect(iso)} disabled={disabled}
+              style={{
+                aspectRatio: "1 / 1", borderRadius: 10, position: "relative",
+                cursor: disabled ? "not-allowed" : "pointer",
+                border: selected ? "2px solid var(--sup-orange)" : isToday ? "1.5px solid var(--sup-teal)" : "1.5px solid var(--border-2)",
+                background: selected ? "#FFF4E5" : disabled ? "var(--slate-100)" : "#fff",
+                color: selected ? "var(--orange-700)" : disabled ? "var(--fg-4)" : "var(--fg-1)",
+                opacity: isPast ? 0.4 : 1,
+                fontFamily: "var(--font-inter)", fontWeight: selected ? 700 : 500, fontSize: 15,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 160ms var(--ease-out)",
+              }}>
+              {cell.getDate()}
+              {!isPast && avail && (
+                <span style={{ position: "absolute", bottom: 5, left: "50%", transform: "translateX(-50%)", width: 5, height: 5, borderRadius: 999, background: avail.available ? "var(--success)" : "var(--danger)" }} />
               )}
-              {loading && <div style={{ position: "absolute", bottom: 4, left: "50%", transform: "translateX(-50%)", width: 5, height: 5, borderRadius: 999, background: "var(--sand-200)", animation: "pulse 1.5s ease-in-out infinite" }} />}
             </button>
           );
         })}
       </div>
+
       <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--teal-50)", borderRadius: 8, fontSize: 13, color: "var(--teal-700)", display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ fontWeight: 500, whiteSpace: "nowrap" }}>เคล็ดลับ —</span>
-        <span>{loading ? "กำลังตรวจสอบวันว่าง..." : "จุดเขียว = ยังมีที่ว่าง · จุดแดง = เต็มแล้ว"}</span>
+        <span>{loading ? "กำลังตรวจสอบวันว่าง..." : "จุดเขียว = ยังมีที่ว่าง · จุดแดง = เต็ม/ปิด · จองล่วงหน้าได้ไม่จำกัด"}</span>
       </div>
     </div>
   );
@@ -135,12 +176,12 @@ function StepWhen({ dateIso, onSelect, availability, loading, weekOffset, setWee
 
 // ─── Step 2: Time ─────────────────────────────────────────────────────────────
 
-function StepTime({ timeSlot, setTimeSlot, availability, dateIso }: {
+function StepTime({ timeSlot, setTimeSlot, availByDate, dateIso, loading }: {
   timeSlot: string; setTimeSlot: (t: string) => void;
-  availability: AvailDay[]; dateIso: string;
+  availByDate: Record<string, AvailDay>; dateIso: string; loading: boolean;
 }) {
-  const dayAvail  = availability.find((d) => d.date === dateIso);
-  const isLoading = availability.length === 0; // still fetching
+  const dayAvail  = availByDate[dateIso];
+  const isLoading = loading && !dayAvail; // still fetching this day
 
   return (
     <div>
@@ -256,12 +297,8 @@ function StepRoute({ route, setRoute, routeCat, setRouteCat }: {
 
 // ─── Step 4: Paddlers ─────────────────────────────────────────────────────────
 
-function getBoardName(w: number) { return w < 60 ? 'บอร์ด S (10\'4")' : w < 85 ? 'บอร์ด M (10\'8")' : 'บอร์ด L (11\'6")'; }
-
-function StepPaddlers({ paddlers, setPaddlers, skill, setSkill, weight, setWeight }: {
+function StepPaddlers({ paddlers, setPaddlers }: {
   paddlers: number; setPaddlers: (n: number) => void;
-  skill: SkillLevel; setSkill: (s: SkillLevel) => void;
-  weight: number; setWeight: (w: number) => void;
 }) {
   return (
     <div style={{ display: "grid", gap: 14 }}>
@@ -275,29 +312,9 @@ function StepPaddlers({ paddlers, setPaddlers, skill, setSkill, weight, setWeigh
           <Stepper value={paddlers} setValue={setPaddlers} min={1} max={10} />
         </div>
       </div>
-      <div>
-        <Label>ระดับฝีมือ</Label>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-          {SKILLS.map((s) => {
-            const sel = skill === s.id;
-            return (
-              <button key={s.id} onClick={() => setSkill(s.id)} style={{ textAlign: "left", padding: "12px 12px", borderRadius: 10, border: sel ? "2px solid var(--sup-teal)" : "1.5px solid var(--border-2)", background: sel ? "var(--teal-50)" : "#fff", cursor: "pointer", fontFamily: "var(--font-kanit)", transition: "all 180ms var(--ease-out)" }}>
-                <div style={{ fontWeight: 500, fontSize: 14, color: "var(--fg-1)", whiteSpace: "nowrap" }}>{s.label}</div>
-                <div style={{ fontSize: 11, color: "var(--fg-2)", fontWeight: 300, marginTop: 4, lineHeight: 1.35 }}>{s.note}</div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <div>
-        <Label>น้ำหนัก (จัดบอร์ดให้พอดี) — ไม่ระบุก็ได้</Label>
-        <div style={{ padding: "12px 14px", background: "var(--sand-50)", borderRadius: 10, border: "1.5px solid var(--border-2)" }}>
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontFamily: "var(--font-inter)", fontSize: 24, fontWeight: 700, color: "var(--fg-1)" }}>{weight}<span style={{ fontSize: 13, color: "var(--fg-3)", marginLeft: 4 }}>kg</span></span>
-            <span style={{ fontSize: 12, fontWeight: 500, color: "var(--sup-teal)", whiteSpace: "nowrap" }}>{getBoardName(weight)}</span>
-          </div>
-          <input type="range" min={40} max={120} value={weight} onChange={(e) => setWeight(Number(e.target.value))} style={{ width: "100%", accentColor: "var(--sup-teal)" }} />
-        </div>
+      <div style={{ padding: "12px 14px", background: "var(--teal-50)", borderRadius: 10, fontSize: 13, color: "var(--teal-700)", lineHeight: 1.65, display: "flex", gap: 10 }}>
+        <span style={{ fontWeight: 600, flexShrink: 0 }}>ℹ</span>
+        <span>เรามีบอร์ดและเสื้อชูชีพหลายขนาดเตรียมไว้ให้ ทีมงานจะช่วยจัดบอร์ดให้เหมาะกับแต่ละคนหน้างาน — มือใหม่ก็พายได้ ไม่ต้องมีประสบการณ์</span>
       </div>
     </div>
   );
@@ -327,7 +344,6 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
     timeSlot: string;   // "09:00" or "MORNING"/"AFTERNOON" (legacy)
     route: { name: string; price: number };
     paddlers: number;
-    skill: SkillLevel;
     photoPermission: PhotoPermission;
     baseTotal: number;
     photoTotal: number;
@@ -335,7 +351,6 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
   };
 }) {
   const canPrivate = paddlers >= 2;
-  const skillLabel = SKILLS.find((s) => s.id === summary.skill)?.label ?? "";
   const photoLabel = PHOTO_OPTIONS.find((p) => p.id === summary.photoPermission)?.label ?? "";
 
   return (
@@ -353,7 +368,7 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
         <span style={{ fontSize: 12, fontWeight: 500, color: fieldErrors.phone ? "var(--danger)" : "var(--fg-2)" }}>
           เบอร์โทร <span style={{ color: "var(--danger)" }}>*</span>
         </span>
-        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="083 714 6958" style={fieldErrors.phone ? inputErrorStyle : inputStyle} />
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="083 111 1111" style={fieldErrors.phone ? inputErrorStyle : inputStyle} />
         {fieldErrors.phone && <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 500 }}>⚠ {fieldErrors.phone}</span>}
       </label>
 
@@ -435,7 +450,7 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
         <Row k="วันที่" v={summary.date} />
         <Row k="เวลา" v={formatTime(summary.timeSlot)} />
         <Row k="เส้นทาง" v={summary.route.name} />
-        <Row k="ผู้พาย" v={`${summary.paddlers} บอร์ด · ${skillLabel}`} />
+        <Row k="ผู้พาย" v={`${summary.paddlers} บอร์ด`} />
         <Row k="ถ่ายภาพ" v={photoLabel} />
         <div style={{ borderTop: "1px dashed var(--border-2)", margin: "6px 0" }} />
         <Row k={`ค่าทัวร์ (฿${summary.route.price}×${summary.paddlers})`} v={`฿${summary.baseTotal.toLocaleString()}`} muted />
@@ -496,10 +511,11 @@ interface BookingWidgetProps {
 }
 
 export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: BookingWidgetProps) {
-  // Availability
-  const [availability, setAvailability] = useState<AvailDay[]>([]);
+  // Availability — keyed by ISO date, merged as the user browses months
+  const [availByDate, setAvailByDate]   = useState<Record<string, AvailDay>>({});
   const [availLoading, setAvailLoading] = useState(true);
-  const [weekOffset, setWeekOffset]     = useState(0);
+  const [viewMonth, setViewMonth]       = useState<Date>(() => startOfMonth(new Date()));
+  const firstLoadRef = useRef(true);
 
   // Pre-select today immediately (updated to first available day after load)
   const [dateIso, setDateIso] = useState(() => toIso(new Date()));
@@ -509,8 +525,6 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const [route, setRoute]                   = useState("phoprak");
   const [routeCat, setRouteCat]             = useState<RouteCategory>("short");
   const [paddlers, setPaddlers]             = useState(2);
-  const [skill, setSkill]                   = useState<SkillLevel>("BEGINNER");
-  const [weight, setWeight]                 = useState(65);
   const [photoPermission, setPhotoPermission] = useState<PhotoPermission>("allow");
   const [name, setName]                     = useState("");
   const [phone, setPhone]                   = useState("");
@@ -527,26 +541,43 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string }>({});
   const [submitError, setSubmitError] = useState("");
 
-  // Load availability on mount
+  // Load availability for the visible month (re-runs as the user browses months)
   useEffect(() => {
-    fetch("/api/availability")
+    let cancelled = false;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const monthStart = startOfMonth(viewMonth);
+    const start = monthStart < today ? today : monthStart;           // never request the past
+    const endOfMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+    const days = Math.floor((endOfMonth.getTime() - start.getTime()) / 86_400_000) + 1;
+    if (days < 1) return;
+
+    setAvailLoading(true);
+    fetch(`/api/availability?start=${toIso(start)}&days=${days}`)
       .then((r) => r.ok ? r.json() : null)
       .then((data: AvailDay[] | null) => {
-        if (data?.length) {
-          setAvailability(data);
+        if (cancelled || !data?.length) return;
+        setAvailByDate((prev) => {
+          const next = { ...prev };
+          for (const d of data) next[d.date] = d;
+          return next;
+        });
+        // On the very first load, jump to the first available upcoming day
+        if (firstLoadRef.current) {
+          firstLoadRef.current = false;
           const first = data.find((d) => d.available);
           if (first) {
             setDateIso(first.date);
             setDate(isoToLabel(first.date));
-            // Pick the first available hour slot
             const firstHour = TIME_SLOTS.find((h) => first.hours[h] ?? true);
             if (firstHour) setTimeSlot(firstHour);
           }
         }
       })
       .catch(() => {}) // keep today's date already set
-      .finally(() => setAvailLoading(false));
-  }, []);
+      .finally(() => { if (!cancelled) setAvailLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [viewMonth]);
 
   // Pre-fill when joining a trip
   useEffect(() => {
@@ -564,7 +595,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const handleDateSelect = (iso: string) => {
     setDateIso(iso);
     setDate(isoToLabel(iso));
-    const avail = availability.find((a) => a.date === iso);
+    const avail = availByDate[iso];
     if (avail && !(avail.hours[timeSlot] ?? true)) {
       // Current time slot not available on this date — pick first available
       const firstAvail = TIME_SLOTS.find((h) => avail.hours[h] ?? true);
@@ -596,7 +627,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
     setSubmitting(true);
     const result = await createBooking({
       date, dateIso, timeSlot, routeId: route,
-      paddlers, weight, skillLevel: skill,
+      paddlers,
       photoPermission, total,
       guestName: name, guestPhone: phone,
       contactChannel: contactId ? contactChannel : undefined,
@@ -669,10 +700,10 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
 
       {/* Step content */}
       <div style={{ minHeight: 300 }}>
-        {step === 0 && <StepWhen dateIso={dateIso} onSelect={handleDateSelect} availability={availability} loading={availLoading} weekOffset={weekOffset} setWeekOffset={setWeekOffset} />}
-        {step === 1 && <StepTime timeSlot={timeSlot} setTimeSlot={setTimeSlot} availability={availability} dateIso={dateIso} />}
+        {step === 0 && <StepWhen dateIso={dateIso} onSelect={handleDateSelect} availByDate={availByDate} loading={availLoading} viewMonth={viewMonth} setViewMonth={setViewMonth} />}
+        {step === 1 && <StepTime timeSlot={timeSlot} setTimeSlot={setTimeSlot} availByDate={availByDate} dateIso={dateIso} loading={availLoading} />}
         {step === 2 && <StepRoute route={route} setRoute={setRoute} routeCat={routeCat} setRouteCat={setRouteCat} />}
-        {step === 3 && <StepPaddlers paddlers={paddlers} setPaddlers={setPaddlers} skill={skill} setSkill={setSkill} weight={weight} setWeight={setWeight} />}
+        {step === 3 && <StepPaddlers paddlers={paddlers} setPaddlers={setPaddlers} />}
         {step === 4 && (
           <StepContact
             name={name} setName={(v) => { setName(v); setFieldErrors((e) => ({ ...e, name: undefined })); }}
@@ -684,7 +715,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
             photoPermission={photoPermission} setPhotoPermission={setPhotoPermission}
             paddlers={paddlers}
             fieldErrors={fieldErrors}
-            summary={{ date, timeSlot, route: selectedRoute, paddlers, skill, photoPermission, baseTotal, photoTotal, total }}
+            summary={{ date, timeSlot, route: selectedRoute, paddlers, photoPermission, baseTotal, photoTotal, total }}
           />
         )}
       </div>

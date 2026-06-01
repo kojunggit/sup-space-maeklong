@@ -11,8 +11,38 @@ const kanit = Kanit({
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "SUP Space Maeklong | พายซับแม่กลอง",
-  description: "สัมผัสประสบการณ์พายซับบอร์ดที่แม่กลอง พร้อมทีมงานมืออาชีพ",
+  metadataBase: new URL("https://sup-space-maeklong.vercel.app"),
+  title: "SUP Space Maeklong | พาย SUP เที่ยวตลาดน้ำแม่กลอง สมุทรสงคราม",
+  description:
+    "พาย SUP เที่ยวตลาดน้ำและวิถีชีวิตริมคลองแม่กลอง · SUP Maeklong & Paddle Board Thailand floating market tours in Samut Songkhram — beginner-friendly, guided, and one of the best things to do near Bangkok. A true Thailand local experience.",
+  keywords: [
+    "SUP Maeklong",
+    "Paddle Board Thailand",
+    "Floating Market Tour",
+    "Samut Songkhram",
+    "Things to do near Bangkok",
+    "Thailand Local Experience",
+    "พาย SUP แม่กลอง",
+    "ตลาดน้ำ",
+    "สมุทรสงคราม",
+  ],
+  openGraph: {
+    title: "SUP Space Maeklong | พาย SUP เที่ยวตลาดน้ำแม่กลอง",
+    description:
+      "SUP Maeklong paddle board floating market tours in Samut Songkhram — beginner-friendly guided trips, ~1 hour from Bangkok.",
+    url: "https://sup-space-maeklong.vercel.app",
+    siteName: "SUP Space Maeklong",
+    locale: "th_TH",
+    type: "website",
+    images: [
+      {
+        url: "/images/KOSI2067.jpg",
+        width: 1200,
+        height: 630,
+        alt: "SUP Maeklong floating market paddle tour",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({

@@ -52,8 +52,6 @@ export default function SpecialTripBookingModal({ trip, onClose, onBooked }: Pro
         timeSlot:      trip.timeSlot,
         routeId:       "",
         paddlers,
-        weight:        0,
-        skillLevel:    "",
         photoPermission: "allow",
         total,
         guestName:     name.trim(),
@@ -187,7 +185,7 @@ export default function SpecialTripBookingModal({ trip, onClose, onBooked }: Pro
               </div>
               <div>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 500, color: "var(--fg-3)", marginBottom: 4 }}>เบอร์โทร *</label>
-                <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="08x-xxx-xxxx" type="tel" style={inputStyle} />
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="083 111 1111" type="tel" style={inputStyle} />
               </div>
             </div>
 
