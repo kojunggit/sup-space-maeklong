@@ -27,7 +27,7 @@ export default function About({ rating, reviewCount }: { rating: number; reviewC
 
           <div>
             <div className="eyebrow">เกี่ยวกับเรา</div>
-            <h2 className="section-title">มากกว่าการพาย SUP คือการได้เห็น<span className="accent">แม่กลองในมุมที่คนส่วนใหญ่ไม่เคยเห็น</span></h2>
+            <h2 className="section-title">มากกว่าการพาย SUP คือการได้เห็น<span className="accent" style={{ whiteSpace: "normal", wordBreak: "break-word" }}>แม่กลองในมุมที่คนส่วนใหญ่ไม่เคยเห็น</span></h2>
             <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 400, fontSize: 17, lineHeight: 1.7, color: "var(--fg-1)", margin: "12px 0 18px" }}>
               คลองสายเล็กที่ซ่อนตัวอยู่หลังตลาดน้ำ สวนมะพร้าวริมฝั่งน้ำ บ้านไม้เก่าแก่ที่ยังคงวิถีชีวิตดั้งเดิม
             </p>
