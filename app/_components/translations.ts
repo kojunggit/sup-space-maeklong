@@ -55,6 +55,27 @@ export interface Translations {
     contactTitle: string; bookCta: string;
     copyright: string; footerLine: string;
   };
+  routesPage: {
+    navHome: string; navBook: string;
+    badge: string;
+    titlePre: string; titleAccent: string; titleSub: string;
+    intro: string;
+    catJumpPrefix: string;          // "ระยะ" / "" (prefix before category label in quick-jump)
+    catEyebrowPrefix: string;       // "ทริประยะ" / "" — before label in section eyebrow
+    catEyebrowSuffix: string;       // "" / " routes" — after label
+    routeCount: (n: number) => string;
+    perBoard: string; bookThis: string; recommend: string;
+    km: string; hours: string;
+    customEyebrow: string; customTitle: string; customDesc: string; customCta: string;
+    pkgEyebrow: string; pkgDesc: string;
+    pkg1Title: string; pkg1Hint: string; pkg2Title: string; pkg2Hint: string;
+    catLabels: Record<string, string>;
+    catSubs: Record<string, string>;
+    catSkills: Record<string, string>;
+    routeNames: Record<string, string>;
+    routeDesc: Record<string, string>;
+    routeWarn: Record<string, string>;
+  };
   widget: {
     eyebrow: string; title: string; sub: string; perBoard: string;
     steps: string[];
@@ -187,6 +208,56 @@ const th: Translations = {
     contactTitle: "ติดต่อ", bookCta: "จองทริปเลย",
     copyright: "© SUP Space Maeklong · พายซับมาตั้งแต่ 2562",
     footerLine: "เจอกันที่แม่กลอง",
+  },
+  routesPage: {
+    navHome: "← หน้าหลัก", navBook: "จองทริปเลย →",
+    badge: "SUP Space Maeklong · แม่กลอง สมุทรสงคราม",
+    titlePre: "13 เส้นทาง", titleAccent: "พายซับ", titleSub: "ริมแม่กลอง · สมุทรสงคราม",
+    intro: "สั้น กลาง ไกล — ตั้งแต่กาแฟริมคลองเม็ง ไปจนถึงผจญภัย 3 ตลาดน้ำ 25 กม มือใหม่ก็พายได้ · ทีมไกด์รู้น้ำขึ้นน้ำลง · รวมถ่ายภาพ",
+    catJumpPrefix: "ระยะ",
+    catEyebrowPrefix: "ทริประยะ", catEyebrowSuffix: "",
+    routeCount: (n) => `${n} เส้นทาง`,
+    perBoard: "/ บอร์ด", bookThis: "จองทริปนี้ →", recommend: "RECOMMEND",
+    km: "กม", hours: "ชม",
+    customEyebrow: "CUSTOM YOUR OWN TRIP",
+    customTitle: "อยากได้เส้นทางแบบอื่น?",
+    customDesc: "นอกจากเส้นทางที่มีให้เลือกตามระยะทางแล้ว เรายังสามารถจัดเส้นทางพายให้เหมาะกับความต้องการของคุณได้อีกด้วย ติดต่อทีมงานเพื่อออกแบบทริปพิเศษสำหรับคุณโดยเฉพาะ",
+    customCta: "ติดต่อออกแบบทริป →",
+    pkgEyebrow: "SUP HEALTHY · แพคเกจรายเดือน",
+    pkgDesc: "พายบ่อยๆ ไม่จำกัดจำนวน ฿3,500/เดือน · หรือ 10 ครั้ง ฿2,900",
+    pkg1Title: "พาย 10 ครั้ง", pkg1Hint: "ครั้งละไม่เกิน 3 ชม",
+    pkg2Title: "รายเดือน ไม่จำกัด", pkg2Hint: "พายได้ไม่จำกัดจำนวน",
+    catLabels: { short: "สั้น", medium: "กลาง", long: "ไกล" },
+    catSubs: { short: "~2 ชม · 2-4 กม", medium: "3-4 ชม · 6-12 กม", long: "ครึ่งวัน · 16-25 กม" },
+    catSkills: { short: "มือใหม่ก็พายได้", medium: "เคยพายมาก่อน", long: "พายเชี่ยวชาญ" },
+    routeNames: {
+      phoprak: "ร้านกาแฟภพรัก", pakhiao: "หอยทอดป้าเขียว", kaodrip: "ร้านกาแฟเก๋าจะดริป",
+      prokcharoen: "วัดปรกเจริญ + ให้อาหารปลา", rongsuan: "ตลาดนัดร่องสวนยายแพง",
+      damnoenpwa: "ร้านอาหารดำเนินพวา", thaka: "ตลาดน้ำท่าคา", damnoen: "ตลาดน้ำดำเนินสะดวก",
+      bangnoi: "บางน้อย / Somdul Bee", watyai: "สะพานแขวนวัดใหญ่", "three-mkts": "ทริป 3 ตลาดน้ำ",
+      bangruahak: "คลองบางเรือหัก", khaoyisarn: "เขายี่สาร — ข้าวใหม่ปลามัน",
+    },
+    routeDesc: {
+      phoprak: "เส้นทางพายเข้าสู่คลองเม็ง ชมธรรมชาติสวนมะพร้าว และวิถีชีวิตริมน้ำ จอดพักดื่มกาแฟจากร้านกาแฟสวยๆ ที่มีเมล็ดกาแฟให้เลือกหลากหลาย ทิวทัศน์สองข้างทางร่มรื่น เหมาะสำหรับมือใหม่และคนที่อยากสัมผัสบรรยากาศริมคลองแบบชิลๆ",
+      pakhiao: "เส้นทางพายเข้าคลองเม็ง แล้วเลี้ยวขวาไปร้านหอยทอดป้าเขียวที่ขายมานานมากกว่า 40 ปี นอกจากหอยทอดแสนอร่อยแล้ว ยังมีอาหารที่หลากหลายให้เลือกทาน รวมทั้งกาแฟและเครื่องดื่มราคาน่ารัก หากโชคดีอาจได้เมนูกุ้งเผาพร้อมน้ำจิ้มสุดแซบอีกด้วย",
+      kaodrip: "เส้นทางพายระยะสั้นๆ น่ารักๆ แวะร้านกาแฟเล็กๆ บรรยากาศในสวน เจ้าของร้านอารมณ์ดีและเป็นกันเอง เหมาะสำหรับคนที่อยากพายเบาๆ และจิบกาแฟชมวิว",
+      prokcharoen: "เส้นทางระยะสั้น เหมาะสำหรับพาเด็กๆ พาย เราจะพายไปวัดปรกเจริญ แวะให้อาหารปลาในลำน้ำ และไหว้พระขอพรก่อนพายกลับแบบชิลๆ ไม่ต้องการทักษะพายสูง มือใหม่พาเด็กมาได้เลย",
+      rongsuan: "เส้นทางไปตลาดนัดเปิดใหม่ที่เน้นของกินราคาน่ารักแต่รสชาติน่ายกนิ้วให้ ตลาดนัดร่องสวนยายแพงเปิดให้บริการเฉพาะวันเสาร์-อาทิตย์ เส้นทางนี้จึงเหมาะสำหรับทริปสุดสัปดาห์",
+      damnoenpwa: "เส้นทางสำหรับทริประยะสั้นรอบเย็น แวะร้านอาหารริมน้ำที่บรรยากาศโรแมนติก เส้นทางนี้แม้จะดูไม่ไกลแต่กระแสน้ำค่อนข้างแรง และมีการพายทวนน้ำครึ่งทาง ได้ออกกำลังกายจนหลับสบายแน่นอน",
+      thaka: "เส้นทางที่พาให้เราได้พบกับความสวยงามและร่มรื่นของคลองบ้านใต้ และวิถีชีวิตเรียบง่ายของชาวสวน จุดหมายปลายทางคือตลาดน้ำโบราณที่ยังคงความเป็นวิถีชุมชนอยู่ มีอาหารอร่อยๆ และสินค้าเกษตรที่พ่อค้าแม่ค้าพายเรือมาขาย",
+      damnoen: "เราจะเริ่มที่วัดโชติทายการาม พายเข้าสู่ตลาดน้ำดำเนินสะดวก ชมตลาดน้ำในตำนาน แวะชมเตาตาลบังเละ และพายกลับมาจบที่ SUP Space Maeklong เส้นทางนี้เต็มไปด้วยบรรยากาศย้อนยุคและวิถีชีวิตดั้งเดิมของชาวสมุทรสงคราม",
+      bangnoi: "เส้นทางพายสำหรับช่วงน้ำลง เราจะล่องไปตามสายน้ำในคลองบางน้อย แวะพักที่ตลาดน้ำบางน้อย จากนั้นเดินทางต่อไปจบที่ร้าน Somdul Bee Sanctuary (6 กม) หรือสะพานแขวนวัดปากน้ำ (7 กม) แล้วแต่ลูกค้าเลือก จากนั้นนั่งรถกลับมาที่จุดเริ่มต้น",
+      watyai: "เส้นทางพายชมแลนด์มาร์คแห่งใหม่ของสมุทรสงคราม สะพานปลาทูหรือสะพานแขวนวัดใหญ่ เส้นทางนี้เราจะพายล่องไปตามแม่น้ำแม่กลองเป็นส่วนใหญ่ กระแสน้ำสงบ พายง่าย เหมาะสำหรับผู้ที่เคยพายมาแล้ว",
+      "three-mkts": "เราจะพายชม 3 ตลาดน้ำที่ดังที่สุดของสมุทรสงคราม ได้แก่ ตลาดน้ำอัมพวา, ตลาดน้ำท่าคา, และตลาดน้ำบางน้อย เป็นเส้นทางที่มีการผจญภัยครบรส ผ่านทั้งคลองแคบ แม่น้ำกว้าง และวิถีชีวิตชุมชนที่หลากหลาย",
+      bangruahak: "เส้นทางพายผ่านอุโมงป่าจากในคลองบางเรือหัก คลองที่กระแสน้ำมีความท้าทายสูง จากนั้นพายออกคลองประชาชมชื่น เข้าสู่แม่น้ำแม่กลอง รวมระยะทาง 20 กม เหมาะสำหรับนักพายที่มีประสบการณ์และต้องการความท้าทาย",
+      khaoyisarn: "เราจะเริ่มลงพายที่เขายี่สาร ชมบรรยากาศวิถีชีวิตคนเผาถ่านที่มีธุรกิจแบบ sustainable พายชมธรรมชาติร่มรื่นและสวยงาม แวะทานอาหารที่ปลายทางร้านข้าวใหม่ปลามัน ก่อนพายกลับมาที่เขายี่สาร",
+    },
+    routeWarn: {
+      damnoen: "⚠ ควรเริ่มพายก่อน 08:00 น. — การพายเข้าตลาดน้ำดำเนินสะดวกหลัง 09:00 น. จะมีการจราจรทางน้ำที่คับคั่งและค่อนข้างอันตรายสำหรับผู้ที่ไม่เคยพายมาก่อน",
+      rongsuan: "📅 เปิดเฉพาะเสาร์–อาทิตย์ — ตลาดนัดร่องสวนยายแพงเปิดให้บริการเฉพาะวันหยุดสุดสัปดาห์",
+      bangnoi: "🌊 เหมาะช่วงน้ำลง — เส้นทางนี้พายง่ายและสนุกกว่าในช่วงน้ำลง",
+      damnoenpwa: "🌊 กระแสน้ำแรง — เส้นทางนี้มีกระแสน้ำค่อนข้างแรงและต้องพายทวนน้ำครึ่งทาง",
+    },
   },
   widget: {
     eyebrow: "จองง่ายใน 30 วินาที", title: "จองทริปพายซับ",
@@ -330,6 +401,56 @@ const en: Translations = {
     contactTitle: "Contact", bookCta: "Book a Trip",
     copyright: "© SUP Space Maeklong · Paddling since 2019",
     footerLine: "See you at Maeklong",
+  },
+  routesPage: {
+    navHome: "← Home", navBook: "Book a Trip →",
+    badge: "SUP Space Maeklong · Maeklong, Samut Songkhram",
+    titlePre: "13 SUP", titleAccent: "Paddling Routes", titleSub: "along the Maeklong River · Samut Songkhram",
+    intro: "Short, medium & long — from canal-side coffee on Khlong Meng to a 25 km, 3-floating-market adventure. Beginner-friendly · our guides know the tides · photos included",
+    catJumpPrefix: "",
+    catEyebrowPrefix: "", catEyebrowSuffix: " routes",
+    routeCount: (n) => `${n} route${n > 1 ? "s" : ""}`,
+    perBoard: "/ board", bookThis: "Book this trip →", recommend: "RECOMMEND",
+    km: "km", hours: "hrs",
+    customEyebrow: "CUSTOM YOUR OWN TRIP",
+    customTitle: "Want a different route?",
+    customDesc: "Beyond the routes listed by distance, we can also tailor a paddling route to fit exactly what you're looking for. Contact our team to design a special trip just for you.",
+    customCta: "Contact us to design a trip →",
+    pkgEyebrow: "SUP HEALTHY · Monthly Package",
+    pkgDesc: "Paddle as often as you like — ฿3,500/month unlimited · or 10 sessions for ฿2,900",
+    pkg1Title: "10 Sessions", pkg1Hint: "max 3 hrs per session",
+    pkg2Title: "Monthly · Unlimited", pkg2Hint: "Unlimited sessions per month",
+    catLabels: { short: "Short", medium: "Medium", long: "Long" },
+    catSubs: { short: "~2 hrs · 2–4 km", medium: "3–4 hrs · 6–12 km", long: "Half day · 16–25 km" },
+    catSkills: { short: "Total beginners", medium: "Some experience", long: "Good fitness" },
+    routeNames: {
+      phoprak: "Phoprak Coffee", pakhiao: "Pa Khiao Oyster Omelette", kaodrip: "Kao Ja Drip Coffee",
+      prokcharoen: "Wat Prok Charoen + Fish Feeding", rongsuan: "Rong Suan Yai Phaeng Market",
+      damnoenpwa: "Damnoen Phwa Riverside Restaurant", thaka: "Tha Kha Floating Market", damnoen: "Damnoen Saduak Floating Market",
+      bangnoi: "Bang Noi / Somdul Bee", watyai: "Wat Yai Suspension Bridge", "three-mkts": "3 Floating Markets Trip",
+      bangruahak: "Bang Rua Hak Canal", khaoyisarn: "Khao Yi San — Khao Mai Pla Man",
+    },
+    routeDesc: {
+      phoprak: "Paddle into Khlong Meng to enjoy coconut groves and riverside life, then stop for coffee at a lovely café offering a wide choice of beans. Shaded scenery on both banks makes this perfect for beginners and anyone wanting a relaxed canal-side vibe.",
+      pakhiao: "Paddle into Khlong Meng, then turn right to Pa Khiao's oyster-omelette shop that's been around for over 40 years. Besides the famous oyster omelette there's a varied menu plus coffee and drinks at friendly prices — if you're lucky, grilled prawns with a fiery dipping sauce too.",
+      kaodrip: "A short, charming route with a stop at a cozy little café set in a garden. The owner is cheerful and welcoming — ideal for those who want an easy paddle and a coffee with a view.",
+      prokcharoen: "A short route great for bringing kids. We paddle to Wat Prok Charoen, stop to feed the fish in the canal, and make merit before an easy paddle back. No advanced skills needed — beginners with children are very welcome.",
+      rongsuan: "A route to a newly opened market focused on cute-priced eats that punch well above their weight. Rong Suan Yai Phaeng market opens only on Saturdays and Sundays, making this a perfect weekend trip.",
+      damnoenpwa: "A short evening route with a stop at a romantic riverside restaurant. Though it looks short, the current is fairly strong with half the route paddling upstream — a workout that guarantees a good night's sleep.",
+      thaka: "A route that reveals the lush beauty of Khlong Ban Tai and the simple life of the orchard folk. The destination is an ancient floating market that still keeps its community ways, with delicious food and farm produce sold straight from the boats.",
+      damnoen: "We start at Wat Chotithayakaram, paddle into Damnoen Saduak Floating Market to see the legendary market, stop by the Bang Le palm-sugar stoves, and paddle back to finish at SUP Space Maeklong. This route is full of nostalgic atmosphere and the traditional life of Samut Songkhram.",
+      bangnoi: "A low-tide route drifting along Khlong Bang Noi, stopping at Bang Noi Floating Market, then continuing to finish at Somdul Bee Sanctuary (6 km) or Wat Pak Nam suspension bridge (7 km) — your choice — before a ride back to the start.",
+      watyai: "Paddle to see Samut Songkhram's newest landmark, the Pla Thu (mackerel) suspension bridge at Wat Yai. This route mostly drifts along the Maeklong River with calm currents — easy paddling, ideal for those who've paddled before.",
+      "three-mkts": "We paddle past Samut Songkhram's three most famous floating markets — Amphawa, Tha Kha, and Bang Noi. A full-flavored adventure through narrow canals, wide rivers, and the diverse life of riverside communities.",
+      bangruahak: "Paddle through the Nipa-palm tunnel of Khlong Bang Rua Hak, a canal with a challenging current, then out via Khlong Pracha Chom Chuen into the Maeklong River — 20 km total. Best for experienced paddlers seeking a challenge.",
+      khaoyisarn: "We put in at Khao Yi San to see the sustainable charcoal-makers' way of life, paddle through lush, beautiful nature, stop to eat at the Khao Mai Pla Man restaurant, then paddle back to Khao Yi San.",
+    },
+    routeWarn: {
+      damnoen: "⚠ Start before 08:00 — entering Damnoen Saduak after 09:00 brings heavy boat traffic that can be dangerous for those who've never paddled before.",
+      rongsuan: "📅 Weekends only — Rong Suan Yai Phaeng market opens only on weekends.",
+      bangnoi: "🌊 Best at low tide — this route is easier and more fun during low tide.",
+      damnoenpwa: "🌊 Strong current — this route has a fairly strong current with half the way paddling upstream.",
+    },
   },
   widget: {
     eyebrow: "Book in 30 seconds", title: "Book a SUP Trip",
