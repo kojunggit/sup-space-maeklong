@@ -1,4 +1,8 @@
+"use client";
+
 import BookingWidget from "./BookingWidget";
+import { useLang } from "./lang-context";
+import { T } from "./translations";
 import type { UpcomingTrip } from "./trips-data";
 
 interface BookingSectionProps {
@@ -16,6 +20,9 @@ function Reassurance({ text }: { text: string }) {
 }
 
 export default function BookingSection({ joinTrip, onClearJoin }: BookingSectionProps) {
+  const { lang } = useLang();
+  const t = T[lang].booking;
+
   return (
     <section style={{ padding: 0, marginTop: -120, position: "relative", zIndex: 2 }}>
       <div className="container">
@@ -24,19 +31,19 @@ export default function BookingSection({ joinTrip, onClearJoin }: BookingSection
           className="booking-grid"
         >
           <div style={{ padding: "60px 0" }} className="booking-pitch">
-            <div className="eyebrow">วิธีที่เร็วที่สุด</div>
+            <div className="eyebrow">{t.eyebrow}</div>
             <h2 style={{ fontFamily: "var(--font-kanit)", fontSize: 48, fontWeight: 700, lineHeight: 1.1, letterSpacing: "-0.015em", margin: "12px 0 22px", color: "var(--fg-1)" }}>
-              เลือกวัน<br />
-              <span style={{ color: "var(--sup-teal)" }}>ที่เหลือ</span> เราจัดการให้
+              {t.titleLine1}<br />
+              <span style={{ color: "var(--sup-teal)" }}>{t.titleAccent}</span>{t.titleLine2}
             </h2>
             <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 17, lineHeight: 1.65, color: "var(--fg-2)", maxWidth: 440 }}>
-              ยกเลิกฟรี · จ่ายหน้างาน · ทีมเรายืนยันใน LINE ภายใน 1 ชั่วโมง พร้อมแผนที่และของที่ต้องเตรียม
+              {t.pitch}
             </p>
             <ul style={{ listStyle: "none", padding: 0, margin: "22px 0 0", display: "grid", gap: 12 }}>
-              <Reassurance text="ไม่ต้องใช้บัตรเครดิตในการจอง" />
-              <Reassurance text="ยืนยันโดยทีมงานจริง (ไม่ใช่บอท)" />
-              <Reassurance text="ยกเลิกฟรี 24 ชม. ก่อนวันทัวร์" />
-              <Reassurance text="รับประกัน rain check ทุกกรณี" />
+              <Reassurance text={t.r1} />
+              <Reassurance text={t.r2} />
+              <Reassurance text={t.r3} />
+              <Reassurance text={t.r4} />
             </ul>
           </div>
 

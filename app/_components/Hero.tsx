@@ -1,13 +1,15 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useLang } from "./lang-context";
+import { T } from "./translations";
 
 interface HeroProps {
   onBookClick: () => void;
   rating: number;
   reviewCount: number;
 }
-
-const TRUST_POINTS = ["มือใหม่พายได้", "ใกล้กรุงเทพฯ", "มีผู้สอนดูแลตลอดทริป", "รวมถ่ายภาพ", "อุปกรณ์ความปลอดภัย"];
 
 const AVATARS = [
   { initials: "ก", bg: "#008080" },
@@ -17,9 +19,14 @@ const AVATARS = [
 ];
 
 export default function Hero({ onBookClick, rating, reviewCount }: HeroProps) {
+  const { lang } = useLang();
+  const t = T[lang].hero;
+
+  // Split title on "SUP" to apply accent span
+  const [titleBefore, titleAfter] = t.title.split("SUP");
+
   return (
     <section id="home" className="hero">
-      {/* Optimized LCP background via next/image (alt carries English SEO keywords) */}
       <Image
         src="/images/KOSI2067.jpg"
         alt="พาย SUP ผ่านตลาดน้ำและคลองที่แม่กลอง สมุทรสงคราม — SUP Maeklong paddle board floating market tour near Bangkok, Thailand"
@@ -35,44 +42,33 @@ export default function Hero({ onBookClick, rating, reviewCount }: HeroProps) {
         <div className="hero__content">
           <p className="hero__badge">
             <span className="hero__badge-dot" aria-hidden="true" />
-            แม่กลอง · สมุทรสงคราม
+            {t.badge}
           </p>
 
           <h1 className="hero__title">
-            พาย <span className="hero__title-accent">SUP</span> เที่ยวตลาดน้ำและวิถีชีวิตริมคลองแม่กลอง
+            {titleBefore}<span className="hero__title-accent">SUP</span>{titleAfter}
           </h1>
 
-          {/* Behind-the-scenes English keywords for SEO / screen readers */}
-          <p className="sr-only">
-            SUP Maeklong — Stand Up Paddle Board Thailand tours through Tha Kha and Bang Noi
-            floating markets in Samut Songkhram. A beginner-friendly Thailand local experience and
-            one of the best things to do near Bangkok.
-          </p>
+          <p className="hero__subtitle">{t.subtitle}</p>
 
-          <p className="hero__subtitle">
-            สัมผัสเสน่ห์ของสมุทรสงครามจากมุมมองที่ไม่เหมือนใคร ผ่านตลาดน้ำ สวนมะพร้าว
-            และชุมชนเก่าแก่ริมคลอง
-          </p>
-
-          <ul className="hero__trust" aria-label="จุดเด่นของทริป">
-            {TRUST_POINTS.map((t) => (
-              <li key={t} className="hero__trust-item">
+          <ul className="hero__trust" aria-label={lang === "th" ? "จุดเด่นของทริป" : "Trip highlights"}>
+            {t.trust.map((point) => (
+              <li key={point} className="hero__trust-item">
                 <span className="hero__trust-check" aria-hidden="true">✓</span>
-                {t}
+                {point}
               </li>
             ))}
           </ul>
 
           <div className="hero__cta">
             <button onClick={onBookClick} className="btn btn-primary hero__cta-primary">
-              จองทริป
+              {t.ctaPrimary}
             </button>
             <Link href="/routes" className="btn hero__cta-secondary">
-              ดูเส้นทางพาย
+              {t.ctaSecondary}
             </Link>
           </div>
 
-          {/* Social proof: avatars + rating + visitor count */}
           <div className="hero__proof">
             <div className="hero__avatars" aria-hidden="true">
               {AVATARS.map((a, i) => (
@@ -85,9 +81,9 @@ export default function Hero({ onBookClick, rating, reviewCount }: HeroProps) {
               <span className="hero__rating">
                 <span aria-hidden="true" className="hero__stars">★★★★★</span>
                 <strong>{rating.toFixed(1)}</strong>
-                <span className="hero__proof-muted">จาก {reviewCount.toLocaleString()} รีวิว Google</span>
+                <span className="hero__proof-muted">{t.proofReviews(reviewCount)}</span>
               </span>
-              <span className="hero__proof-muted">นักพายกว่า 1,200 คน ร่วมทริปกับเรา</span>
+              <span className="hero__proof-muted">{t.proofPaddlers}</span>
             </div>
           </div>
         </div>

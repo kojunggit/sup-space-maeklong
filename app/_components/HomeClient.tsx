@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { LangProvider } from "./lang-context";
 import Header from "./Header";
 import Hero from "./Hero";
 import BookingSection from "./BookingSection";
@@ -56,6 +57,7 @@ export default function HomeClient({ initialTrips, placeData }: HomeClientProps)
   }, []);
 
   return (
+    <LangProvider>
     <div>
       <Header onBookClick={onBookClick} />
       <Hero onBookClick={onBookClick} rating={placeData.rating} reviewCount={placeData.reviewCount} />
@@ -70,5 +72,6 @@ export default function HomeClient({ initialTrips, placeData }: HomeClientProps)
       <Reviews reviews={placeData.fiveStarReviews} rating={placeData.rating} reviewCount={placeData.reviewCount} />
       <Footer />
     </div>
+    </LangProvider>
   );
 }

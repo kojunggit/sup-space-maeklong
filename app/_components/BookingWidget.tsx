@@ -7,20 +7,17 @@ import {
   type UpcomingTrip, type RouteCategory,
 } from "./trips-data";
 import { createBooking } from "../actions/booking";
+import { useLang } from "./lang-context";
+import { T } from "./translations";
 
 // ─── Date utilities ───────────────────────────────────────────────────────────
-
-const THAI_DAYS   = ["อา", "จ.", "อ.", "พ.", "พฤ", "ศ.", "ส."];
-const THAI_MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-const THAI_MONTHS_FULL = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-const THAI_DOW = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
 function toIso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-function isoToLabel(iso: string): string {
+function isoToLabel(iso: string, dow: string[], monthsShort: string[], yearOffset: number): string {
   const d = new Date(iso + "T00:00:00");
-  return `${THAI_DAYS[d.getDay()]} ${d.getDate()} ${THAI_MONTHS[d.getMonth()]}`;
+  return `${dow[d.getDay()]} ${d.getDate()} ${monthsShort[d.getMonth()]}`;
 }
 function startOfMonth(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -29,33 +26,11 @@ function addMonths(d: Date, n: number): Date {
   return new Date(d.getFullYear(), d.getMonth() + n, 1);
 }
 
-/** Format a raw timeSlot for display in confirmed state / summary */
-function formatTime(slot: string): string {
-  if (slot === "MORNING")   return "รอบเช้า";
-  if (slot === "AFTERNOON") return "รอบบ่าย";
-  return `${slot} น.`;
-}
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AvailDay { date: string; hours: Record<string, boolean>; available: boolean; }
 type PhotoPermission = "allow" | "notAllow" | "private";
-
-const PHOTO_OPTIONS: { id: PhotoPermission; label: string; sub: string; badge?: string }[] = [
-  { id: "allow",    label: "อนุญาต",    sub: "ให้ใช้ภาพใน Social ได้ · ได้รับภาพเป็นที่ระลึก" },
-  { id: "notAllow", label: "ไม่อนุญาต", sub: "ไม่ต้องการให้ถ่ายภาพ" },
-  { id: "private",  label: "Private",   sub: "ได้ภาพส่วนตัว · ไม่เผยแพร่ใน Social", badge: `+฿${PRIVATE_PHOTO_PRICE}/คน` },
-];
-
-// ─── Contact channel ──────────────────────────────────────────────────────────
-
 type ContactChannel = "line" | "whatsapp" | "messenger";
-
-const CONTACT_CHANNELS: { id: ContactChannel; label: string; icon: string; placeholder: string }[] = [
-  { id: "line",      label: "LINE",      icon: "💬", placeholder: "LINE ID หรือ @username" },
-  { id: "whatsapp",  label: "WhatsApp",  icon: "📲", placeholder: "เบอร์โทร WhatsApp" },
-  { id: "messenger", label: "Messenger", icon: "🗨️",  placeholder: "ชื่อ Facebook / username" },
-];
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
 
@@ -70,13 +45,13 @@ function TrustChip({ label }: { label: string }) {
     </span>
   );
 }
-function Stepper({ value, setValue, min, max }: { value: number; setValue: (v: number) => void; min: number; max: number }) {
+function Stepper({ value, setValue, min, max, decLabel, incLabel }: { value: number; setValue: (v: number) => void; min: number; max: number; decLabel: string; incLabel: string }) {
   const btn: React.CSSProperties = { width: 36, height: 36, borderRadius: 999, border: "1.5px solid var(--sup-teal)", background: "#fff", color: "var(--sup-teal)", fontSize: 20, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" };
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-      <button onClick={() => setValue(Math.max(min, value - 1))} style={btn} aria-label="ลด">−</button>
+      <button onClick={() => setValue(Math.max(min, value - 1))} style={btn} aria-label={decLabel}>−</button>
       <div style={{ fontFamily: "var(--font-inter)", fontSize: 22, fontWeight: 700, color: "var(--fg-1)", minWidth: 28, textAlign: "center" }}>{value}</div>
-      <button onClick={() => setValue(Math.min(max, value + 1))} style={btn} aria-label="เพิ่ม">+</button>
+      <button onClick={() => setValue(Math.min(max, value + 1))} style={btn} aria-label={incLabel}>+</button>
     </div>
   );
 }
@@ -96,6 +71,9 @@ function StepWhen({ dateIso, onSelect, availByDate, loading, viewMonth, setViewM
   availByDate: Record<string, AvailDay>; loading: boolean;
   viewMonth: Date; setViewMonth: (d: Date) => void;
 }) {
+  const { lang } = useLang();
+  const t = T[lang].widget;
+
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const thisMonth   = startOfMonth(today);
   const monthStart  = startOfMonth(viewMonth);
@@ -103,37 +81,33 @@ function StepWhen({ dateIso, onSelect, availByDate, loading, viewMonth, setViewM
 
   const year  = monthStart.getFullYear();
   const month = monthStart.getMonth();
-  const firstDow     = monthStart.getDay();               // 0 = Sun
+  const firstDow     = monthStart.getDay();
   const daysInMonth  = new Date(year, month + 1, 0).getDate();
 
-  // Build calendar cells: leading blanks + each day of the month
   const cells: (Date | null)[] = [];
   for (let i = 0; i < firstDow; i++) cells.push(null);
   for (let day = 1; day <= daysInMonth; day++) cells.push(new Date(year, month, day));
 
   return (
     <div>
-      <Label>เลือกวันที่</Label>
+      <Label>{t.dateLabel}</Label>
 
-      {/* Month navigation */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <button onClick={() => !atFirstMonth && setViewMonth(addMonths(monthStart, -1))} disabled={atFirstMonth}
-          className="btn btn-ghost" style={{ fontSize: 18, padding: "4px 14px", opacity: atFirstMonth ? 0.3 : 1 }} aria-label="เดือนก่อนหน้า">←</button>
+          className="btn btn-ghost" style={{ fontSize: 18, padding: "4px 14px", opacity: atFirstMonth ? 0.3 : 1 }} aria-label="prev month">←</button>
         <span style={{ fontFamily: "var(--font-kanit)", fontWeight: 700, fontSize: 16, color: "var(--fg-1)" }}>
-          {THAI_MONTHS_FULL[month]} {year + 543}
+          {t.monthsFull[month]} {year + t.yearOffset}
         </span>
         <button onClick={() => setViewMonth(addMonths(monthStart, 1))}
-          className="btn btn-ghost" style={{ fontSize: 18, padding: "4px 14px" }} aria-label="เดือนถัดไป">→</button>
+          className="btn btn-ghost" style={{ fontSize: 18, padding: "4px 14px" }} aria-label="next month">→</button>
       </div>
 
-      {/* Day-of-week header */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 6 }}>
-        {THAI_DOW.map((d, i) => (
+        {t.dow.map((d, i) => (
           <div key={i} style={{ textAlign: "center", fontFamily: "var(--font-kanit)", fontSize: 11, fontWeight: 500, color: (i === 0 || i === 6) ? "var(--sup-orange)" : "var(--fg-3)" }}>{d}</div>
         ))}
       </div>
 
-      {/* Day grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
         {cells.map((cell, i) => {
           if (!cell) return <div key={`blank-${i}`} />;
@@ -167,8 +141,8 @@ function StepWhen({ dateIso, onSelect, availByDate, loading, viewMonth, setViewM
       </div>
 
       <div style={{ marginTop: 14, padding: "10px 14px", background: "var(--teal-50)", borderRadius: 8, fontSize: 13, color: "var(--teal-700)", display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontWeight: 500, whiteSpace: "nowrap" }}>เคล็ดลับ —</span>
-        <span>{loading ? "กำลังตรวจสอบวันว่าง..." : "จุดเขียว = ยังมีที่ว่าง · จุดแดง = เต็ม/ปิด · จองล่วงหน้าได้ไม่จำกัด"}</span>
+        <span style={{ fontWeight: 500, whiteSpace: "nowrap" }}>{lang === "th" ? "เคล็ดลับ —" : "Tip —"}</span>
+        <span>{t.dateTip(loading)}</span>
       </div>
     </div>
   );
@@ -180,26 +154,27 @@ function StepTime({ timeSlot, setTimeSlot, availByDate, dateIso, loading }: {
   timeSlot: string; setTimeSlot: (t: string) => void;
   availByDate: Record<string, AvailDay>; dateIso: string; loading: boolean;
 }) {
+  const { lang } = useLang();
+  const t = T[lang].widget;
   const dayAvail  = availByDate[dateIso];
-  const isLoading = loading && !dayAvail; // still fetching this day
+  const isLoading = loading && !dayAvail;
 
   return (
     <div>
-      <Label>เลือกเวลา</Label>
+      <Label>{t.timeLabel}</Label>
 
-      {/* Legend */}
       <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 12, fontFamily: "var(--font-kanit)", color: "var(--fg-3)" }}>
         <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 10, height: 10, borderRadius: 3, background: "#52C41A", display: "inline-block" }} />
-          ว่าง
+          {t.timeAvail}
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 10, height: 10, borderRadius: 3, background: "#FF4D4F", display: "inline-block" }} />
-          มีทริปแล้ว
+          {t.timeBooked}
         </span>
         <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ width: 10, height: 10, borderRadius: 3, background: "var(--sup-orange)", display: "inline-block" }} />
-          เลือกอยู่
+          {t.timeSelected}
         </span>
       </div>
 
@@ -207,12 +182,9 @@ function StepTime({ timeSlot, setTimeSlot, availByDate, dateIso, loading }: {
         {TIME_SLOTS.map((h) => {
           const avail    = isLoading || !dayAvail || (dayAvail.hours[h] ?? true);
           const selected = timeSlot === h;
-
-          // Color scheme: selected=orange, available=green, unavailable=red
           const bg     = selected ? "#FFF4E5" : avail ? "#F6FFED" : "#FFF1F0";
           const border = selected ? "2px solid var(--sup-orange)" : avail ? "2px solid #52C41A" : "2px solid #FF4D4F";
           const color  = selected ? "var(--orange-700)" : avail ? "#237804" : "#CF1322";
-
           return (
             <button
               key={h}
@@ -228,17 +200,13 @@ function StepTime({ timeSlot, setTimeSlot, availByDate, dateIso, loading }: {
                 boxShadow: selected ? "0 0 0 3px rgba(255,140,0,0.15)" : avail ? "0 0 0 0px transparent" : "none",
               }}
             >
-              {isLoading ? (
-                <span style={{ opacity: 0.4 }}>{h}</span>
-              ) : (
-                h
-              )}
+              {isLoading ? <span style={{ opacity: 0.4 }}>{h}</span> : h}
             </button>
           );
         })}
       </div>
       <p style={{ marginTop: 14, fontFamily: "var(--font-kanit)", fontSize: 12, color: "var(--fg-3)", fontWeight: 300, lineHeight: 1.5 }}>
-        ปุ่มสีแดง = ช่วงเวลานั้นมีทริปอยู่แล้ว (รวมเวลาที่ทริปนั้นใช้) · เลือกเวลาสีเขียว
+        {t.timeHint}
       </p>
     </div>
   );
@@ -250,25 +218,30 @@ function StepRoute({ route, setRoute, routeCat, setRouteCat }: {
   route: string; setRoute: (r: string) => void;
   routeCat: RouteCategory; setRouteCat: (c: RouteCategory) => void;
 }) {
+  const { lang } = useLang();
+  const t = T[lang].widget;
   const filtered = ROUTES.filter((r) => r.cat === routeCat);
-  const catInfo = CATEGORIES.find((c) => c.id === routeCat)!;
+  const catIndex = CATEGORIES.findIndex((c) => c.id === routeCat);
+  const catSkill = t.cats[catIndex]?.skill ?? "";
+
   return (
     <div>
-      <Label>เลือกเส้นทาง</Label>
+      <Label>{t.routeLabel}</Label>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, background: "var(--sand-50)", padding: 4, borderRadius: 10, marginBottom: 12 }}>
-        {CATEGORIES.map((c) => {
+        {CATEGORIES.map((c, i) => {
           const sel = routeCat === c.id;
+          const cat = t.cats[i];
           return (
             <button key={c.id} onClick={() => setRouteCat(c.id as RouteCategory)} style={{ padding: "8px 6px", borderRadius: 8, border: "none", background: sel ? "#fff" : "transparent", boxShadow: sel ? "var(--shadow-sm)" : "none", cursor: "pointer", fontFamily: "var(--font-kanit)", color: sel ? "var(--sup-teal)" : "var(--fg-2)", fontWeight: sel ? 700 : 500, transition: "all 160ms var(--ease-out)" }}>
-              <div style={{ fontSize: 14, whiteSpace: "nowrap" }}>{c.label}</div>
-              <div style={{ fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 500, color: sel ? "var(--sup-teal)" : "var(--fg-3)", marginTop: 2, whiteSpace: "nowrap" }}>{c.sub}</div>
+              <div style={{ fontSize: 14, whiteSpace: "nowrap" }}>{cat.label}</div>
+              <div style={{ fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 500, color: sel ? "var(--sup-teal)" : "var(--fg-3)", marginTop: 2, whiteSpace: "nowrap" }}>{cat.sub}</div>
             </button>
           );
         })}
       </div>
       <div style={{ fontFamily: "var(--font-kanit)", fontSize: 12, color: "var(--sup-teal)", fontWeight: 500, marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
         <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--sup-teal)", flexShrink: 0 }} />
-        เหมาะกับ: {catInfo.skill}
+        {t.routeFit} {catSkill}
       </div>
       <div style={{ display: "grid", gap: 8, maxHeight: 240, overflowY: "auto", paddingRight: 4 }}>
         {filtered.map((r) => {
@@ -285,7 +258,7 @@ function StepRoute({ route, setRoute, routeCat, setRouteCat }: {
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
                 <div style={{ fontFamily: "var(--font-inter)", fontWeight: 700, color: "var(--sup-teal)", fontSize: 17, whiteSpace: "nowrap" }}>฿{r.price}</div>
-                <div style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "var(--fg-3)", whiteSpace: "nowrap" }}>{r.km} กม</div>
+                <div style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "var(--fg-3)", whiteSpace: "nowrap" }}>{r.km} km</div>
               </div>
             </button>
           );
@@ -300,21 +273,24 @@ function StepRoute({ route, setRoute, routeCat, setRouteCat }: {
 function StepPaddlers({ paddlers, setPaddlers }: {
   paddlers: number; setPaddlers: (n: number) => void;
 }) {
+  const { lang } = useLang();
+  const t = T[lang].widget;
+
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div>
-        <Label>จำนวนบอร์ด</Label>
+        <Label>{t.boardsLabel}</Label>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "var(--sand-50)", borderRadius: 10, border: "1.5px solid var(--border-2)" }}>
           <div>
-            <div style={{ fontWeight: 500, fontSize: 16, color: "var(--fg-1)" }}>ผู้ใหญ่ · 1 บอร์ด/คน</div>
-            <div style={{ fontSize: 12, color: "var(--fg-3)", fontWeight: 300 }}>อายุ 12+ ปี</div>
+            <div style={{ fontWeight: 500, fontSize: 16, color: "var(--fg-1)" }}>{t.adultLabel}</div>
+            <div style={{ fontSize: 12, color: "var(--fg-3)", fontWeight: 300 }}>{t.ageNote}</div>
           </div>
-          <Stepper value={paddlers} setValue={setPaddlers} min={1} max={10} />
+          <Stepper value={paddlers} setValue={setPaddlers} min={1} max={10} decLabel="−" incLabel="+" />
         </div>
       </div>
       <div style={{ padding: "12px 14px", background: "var(--teal-50)", borderRadius: 10, fontSize: 13, color: "var(--teal-700)", lineHeight: 1.65, display: "flex", gap: 10 }}>
         <span style={{ fontWeight: 600, flexShrink: 0 }}>ℹ</span>
-        <span>เรามีบอร์ดและเสื้อชูชีพหลายขนาดเตรียมไว้ให้ ทีมงานจะช่วยจัดบอร์ดให้เหมาะกับแต่ละคนหน้างาน — มือใหม่ก็พายได้ ไม่ต้องมีประสบการณ์</span>
+        <span>{t.boardsNote}</span>
       </div>
     </div>
   );
@@ -329,6 +305,9 @@ const inputStyle: React.CSSProperties = {
 };
 const inputErrorStyle: React.CSSProperties = { ...inputStyle, borderColor: "var(--danger)" };
 
+const CONTACT_CHANNEL_IDS: ContactChannel[] = ["line", "whatsapp", "messenger"];
+const CONTACT_CHANNEL_ICONS = ["💬", "📲", "🗨️"];
+
 function StepContact({ name, setName, phone, setPhone, contactChannel, setContactChannel, contactId, setContactId, pickupAddress, setPickupAddress, notes, setNotes, photoPermission, setPhotoPermission, paddlers, summary, fieldErrors }: {
   name: string; setName: (s: string) => void;
   phone: string; setPhone: (s: string) => void;
@@ -341,7 +320,7 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
   fieldErrors: { name?: string; phone?: string };
   summary: {
     date: string;
-    timeSlot: string;   // "09:00" or "MORNING"/"AFTERNOON" (legacy)
+    timeSlot: string;
     route: { name: string; price: number };
     paddlers: number;
     photoPermission: PhotoPermission;
@@ -350,38 +329,39 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
     total: number;
   };
 }) {
+  const { lang } = useLang();
+  const t = T[lang].widget;
   const canPrivate = paddlers >= 2;
-  const photoLabel = PHOTO_OPTIONS.find((p) => p.id === summary.photoPermission)?.label ?? "";
+  const channelIndex = CONTACT_CHANNEL_IDS.indexOf(contactChannel);
+  const photoLabel = t.photoOpts.find((_, i) => (["allow","notAllow","private"] as PhotoPermission[])[i] === summary.photoPermission)?.label ?? "";
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      {/* Contact fields */}
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 500, color: fieldErrors.name ? "var(--danger)" : "var(--fg-2)" }}>
-          ชื่อผู้จอง <span style={{ color: "var(--danger)" }}>*</span>
+          {t.nameLabel} <span style={{ color: "var(--danger)" }}>*</span>
         </span>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="มะลิ สุวรรณภา" style={fieldErrors.name ? inputErrorStyle : inputStyle} />
-        {fieldErrors.name && <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 500 }}>⚠ {fieldErrors.name}</span>}
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t.namePlaceholder} style={fieldErrors.name ? inputErrorStyle : inputStyle} />
+        {fieldErrors.name && <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 500 }}>⚠ {t.nameError}</span>}
       </label>
 
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 500, color: fieldErrors.phone ? "var(--danger)" : "var(--fg-2)" }}>
-          เบอร์โทร <span style={{ color: "var(--danger)" }}>*</span>
+          {t.phoneLabel} <span style={{ color: "var(--danger)" }}>*</span>
         </span>
         <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="083 111 1111" style={fieldErrors.phone ? inputErrorStyle : inputStyle} />
-        {fieldErrors.phone && <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 500 }}>⚠ {fieldErrors.phone}</span>}
+        {fieldErrors.phone && <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 500 }}>⚠ {t.phoneError}</span>}
       </label>
 
-      {/* Contact channel */}
       <div style={{ display: "grid", gap: 8 }}>
         <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)" }}>
-          ช่องทางติดต่อ <span style={{ fontWeight: 300, color: "var(--fg-4)" }}>(ไม่บังคับ)</span>
+          {t.channelLabel} <span style={{ fontWeight: 300, color: "var(--fg-4)" }}>({t.channelOpt})</span>
         </span>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-          {CONTACT_CHANNELS.map((ch) => {
-            const sel = contactChannel === ch.id;
+          {CONTACT_CHANNEL_IDS.map((id, i) => {
+            const sel = contactChannel === id;
             return (
-              <button key={ch.id} onClick={() => setContactChannel(ch.id)}
+              <button key={id} onClick={() => setContactChannel(id)}
                 style={{
                   padding: "10px 6px", borderRadius: 10, cursor: "pointer",
                   border: sel ? "2px solid var(--sup-teal)" : "1.5px solid var(--border-2)",
@@ -389,8 +369,8 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
                   fontFamily: "var(--font-kanit)", transition: "all 180ms var(--ease-out)",
                 }}>
-                <span style={{ fontSize: 18 }}>{ch.icon}</span>
-                <span style={{ fontSize: 12, fontWeight: sel ? 700 : 500, color: sel ? "var(--sup-teal)" : "var(--fg-2)", whiteSpace: "nowrap" }}>{ch.label}</span>
+                <span style={{ fontSize: 18 }}>{CONTACT_CHANNEL_ICONS[i]}</span>
+                <span style={{ fontSize: 12, fontWeight: sel ? 700 : 500, color: sel ? "var(--sup-teal)" : "var(--fg-2)", whiteSpace: "nowrap" }}>{["LINE","WhatsApp","Messenger"][i]}</span>
               </button>
             );
           })}
@@ -398,44 +378,43 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
         <input
           value={contactId}
           onChange={(e) => setContactId(e.target.value)}
-          placeholder={CONTACT_CHANNELS.find((c) => c.id === contactChannel)?.placeholder ?? ""}
+          placeholder={t.channelPlaceholders[channelIndex] ?? ""}
           style={inputStyle}
         />
       </div>
 
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)" }}>
-          ที่อยู่รับ-ส่ง{" "}
-          <span style={{ fontWeight: 300, color: "var(--fg-4)" }}>(ถ้าต้องการบริการ · ใน 5 กม ฟรี)</span>
+          {t.pickupLabel}{" "}
+          <span style={{ fontWeight: 300, color: "var(--fg-4)" }}>({t.pickupNote})</span>
         </span>
-        <input value={pickupAddress} onChange={(e) => setPickupAddress(e.target.value)} placeholder="บ้านเลขที่ / ชื่อโรงแรม / สถานที่" style={inputStyle} />
+        <input value={pickupAddress} onChange={(e) => setPickupAddress(e.target.value)} placeholder={t.pickupPlaceholder} style={inputStyle} />
       </label>
 
       <label style={{ display: "grid", gap: 6 }}>
-        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)" }}>หมายเหตุเพิ่มเติม</span>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="เช่น มีเด็กเล็ก มีผู้สูงอายุ ความต้องการพิเศษ ฯลฯ" style={{ ...inputStyle, resize: "vertical", minHeight: 68 }} />
+        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)" }}>{t.notesLabel}</span>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t.notesPlaceholder} style={{ ...inputStyle, resize: "vertical", minHeight: 68 }} />
       </label>
 
-      {/* Photo permission */}
       <div>
-        <Label>การถ่ายภาพ</Label>
+        <Label>{t.photoLabel}</Label>
         <div style={{ padding: "10px 14px", background: "var(--teal-50)", borderRadius: 8, fontSize: 12, color: "var(--teal-700)", lineHeight: 1.65, marginBottom: 10 }}>
-          <strong style={{ fontWeight: 600 }}>ℹ การอนุญาตถ่ายภาพ — </strong>
-          การอนุญาตหมายถึงให้สิทธิ์กับทาง Sup Space Maeklong นำภาพไปเผยแพร่ในสื่อ social ได้ และลูกค้าจะได้รับภาพที่ถ่ายเป็นที่ระลึก
-          แต่ถ้าลูกค้าไม่ต้องการให้เผยแพร่ภาพในสื่อแต่ต้องการรูป สามารถเลือกเป็น <strong style={{ fontWeight: 600 }}>Private</strong> ได้ โดยมีค่าใช้จ่าย 500 บาท
+          <strong style={{ fontWeight: 600 }}>ℹ {t.photoLabel} — </strong>
+          {t.photoExplain}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-          {PHOTO_OPTIONS.map((opt) => {
-            const disabled = opt.id === "private" && !canPrivate;
-            const sel = photoPermission === opt.id;
+          {(["allow","notAllow","private"] as PhotoPermission[]).map((id, i) => {
+            const opt = t.photoOpts[i];
+            const disabled = id === "private" && !canPrivate;
+            const sel = photoPermission === id;
             return (
-              <button key={opt.id} onClick={() => !disabled && setPhotoPermission(opt.id)} disabled={disabled}
+              <button key={id} onClick={() => !disabled && setPhotoPermission(id)} disabled={disabled}
                 style={{ textAlign: "left", padding: "12px 12px", borderRadius: 10, border: sel ? "2px solid var(--sup-orange)" : "1.5px solid var(--border-2)", background: sel ? "#FFF4E5" : "#fff", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1, fontFamily: "var(--font-kanit)", transition: "all 180ms var(--ease-out)" }}>
                 <div style={{ fontWeight: 700, fontSize: 14, color: sel ? "var(--orange-700)" : "var(--fg-1)" }}>{opt.label}</div>
                 <div style={{ fontSize: 11, color: "var(--fg-2)", fontWeight: 300, marginTop: 4, lineHeight: 1.35 }}>{opt.sub}</div>
                 {opt.badge && (
                   <div style={{ fontSize: 11, color: sel ? "var(--sup-orange)" : "var(--fg-3)", fontWeight: 500, marginTop: 4 }}>
-                    {disabled ? "ต้องมีอย่างน้อย 2 คน" : opt.badge}
+                    {disabled ? opt.minPeople : opt.badge}
                   </div>
                 )}
               </button>
@@ -444,19 +423,18 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
         </div>
       </div>
 
-      {/* Booking summary */}
       <div style={{ background: "var(--sand-50)", borderRadius: 10, padding: 14, border: "1px solid var(--border-1)" }}>
-        <div style={{ fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 600, color: "var(--sup-teal)", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 6 }}>สรุปการจอง</div>
-        <Row k="วันที่" v={summary.date} />
-        <Row k="เวลา" v={formatTime(summary.timeSlot)} />
-        <Row k="เส้นทาง" v={summary.route.name} />
-        <Row k="ผู้พาย" v={`${summary.paddlers} บอร์ด`} />
-        <Row k="ถ่ายภาพ" v={photoLabel} />
+        <div style={{ fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 600, color: "var(--sup-teal)", textTransform: "uppercase", letterSpacing: "0.14em", marginBottom: 6 }}>{t.summaryTitle}</div>
+        <Row k={t.sumDate}   v={summary.date} />
+        <Row k={t.sumTime}   v={t.formatTime(summary.timeSlot)} />
+        <Row k={t.sumRoute}  v={summary.route.name} />
+        <Row k={t.sumBoards} v={`${summary.paddlers} ${lang === "th" ? "บอร์ด" : "board" + (summary.paddlers > 1 ? "s" : "")}`} />
+        <Row k={t.sumPhoto}  v={photoLabel} />
         <div style={{ borderTop: "1px dashed var(--border-2)", margin: "6px 0" }} />
-        <Row k={`ค่าทัวร์ (฿${summary.route.price}×${summary.paddlers})`} v={`฿${summary.baseTotal.toLocaleString()}`} muted />
+        <Row k={`${lang === "th" ? "ค่าทัวร์" : "Tour"} (฿${summary.route.price}×${summary.paddlers})`} v={`฿${summary.baseTotal.toLocaleString()}`} muted />
         {summary.photoTotal > 0 && <Row k={`Private photo (฿${PRIVATE_PHOTO_PRICE}×${summary.paddlers})`} v={`+฿${summary.photoTotal.toLocaleString()}`} muted />}
         <div style={{ borderTop: "1px dashed var(--border-2)", margin: "6px 0" }} />
-        <Row k="รวมทั้งหมด" v={`฿${summary.total.toLocaleString()}`} big />
+        <Row k={t.sumTotal} v={`฿${summary.total.toLocaleString()}`} big />
       </div>
     </div>
   );
@@ -469,30 +447,29 @@ function ConfirmedState({ date, timeSlot, route, paddlers, name, photoPermission
   paddlers: number; name: string; photoPermission: PhotoPermission;
   total: number; bookingId: string; joinHost: string | null; onReset: () => void;
 }) {
-  const photoLabel = PHOTO_OPTIONS.find((p) => p.id === photoPermission)?.label ?? "";
+  const { lang } = useLang();
+  const t = T[lang].widget;
+  const photoLabel = t.photoOpts.find((_, i) => (["allow","notAllow","private"] as PhotoPermission[])[i] === photoPermission)?.label ?? "";
   const refId = bookingId ? bookingId.slice(-8).toUpperCase() : "—";
 
   return (
     <div style={{ textAlign: "center", padding: "12px 0" }}>
       <div style={{ width: 76, height: 76, borderRadius: 999, background: "var(--success-soft)", color: "var(--success)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 36, fontWeight: 800, animation: "pop 480ms cubic-bezier(0.34,1.56,0.64,1)" }}>✓</div>
       <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 700, fontSize: 32, color: "var(--sup-teal)", lineHeight: 1.15, marginTop: 16 }}>
-        {joinHost ? `ร่วมทริปกับ ${joinHost} แล้ว!` : "เจอกันที่แม่กลอง!"}
+        {joinHost ? t.confirmedJoin(joinHost) : t.confirmedTitle}
       </div>
 
-      {/* Booking reference */}
       <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 12, padding: "8px 18px", background: "var(--sand-50)", borderRadius: 999, border: "1px solid var(--border-2)" }}>
-        <span style={{ fontFamily: "var(--font-kanit)", fontSize: 12, color: "var(--fg-3)" }}>หมายเลขจอง</span>
+        <span style={{ fontFamily: "var(--font-kanit)", fontSize: 12, color: "var(--fg-3)" }}>{t.bookingRef}</span>
         <span style={{ fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 16, color: "var(--fg-1)", letterSpacing: "0.08em" }}>#{refId}</span>
       </div>
 
       <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 15, color: "var(--fg-2)", maxWidth: 420, margin: "14px auto 8px", lineHeight: 1.6 }}>
-        ขอบคุณ <strong style={{ color: "var(--fg-1)", fontWeight: 500 }}>{name || "คุณ"}</strong> · {paddlers} บอร์ด
-        {" "}เส้นทาง<strong style={{ color: "var(--fg-1)", fontWeight: 500 }}>{route.name}</strong>
-        {" "}· {formatTime(timeSlot)} {date} · ถ่ายภาพ: {photoLabel}
+        {t.confirmedMsg(name, paddlers, route.name, t.formatTime(timeSlot), date, photoLabel)}
       </p>
 
       <div style={{ fontFamily: "var(--font-inter)", fontSize: 24, fontWeight: 700, color: "var(--fg-1)", marginBottom: 20 }}>฿{total.toLocaleString()}</div>
-      <button onClick={onReset} className="btn btn-secondary">{joinHost ? "ร่วมทริปอื่น" : "จองอีก"}</button>
+      <button onClick={onReset} className="btn btn-secondary">{joinHost ? t.resetJoin : t.resetBook}</button>
     </div>
   );
 }
@@ -511,15 +488,16 @@ interface BookingWidgetProps {
 }
 
 export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: BookingWidgetProps) {
-  // Availability — keyed by ISO date, merged as the user browses months
+  const { lang } = useLang();
+  const t = T[lang].widget;
+
   const [availByDate, setAvailByDate]   = useState<Record<string, AvailDay>>({});
   const [availLoading, setAvailLoading] = useState(true);
   const [viewMonth, setViewMonth]       = useState<Date>(() => startOfMonth(new Date()));
   const firstLoadRef = useRef(true);
 
-  // Pre-select today immediately (updated to first available day after load)
   const [dateIso, setDateIso] = useState(() => toIso(new Date()));
-  const [date, setDate]       = useState(() => isoToLabel(toIso(new Date())));
+  const [date, setDate]       = useState(() => isoToLabel(toIso(new Date()), t.dow, t.monthsShort, t.yearOffset));
 
   const [timeSlot, setTimeSlot]             = useState<string>("07:00");
   const [route, setRoute]                   = useState("phoprak");
@@ -537,16 +515,19 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const [contactChannel, setContactChannel] = useState<ContactChannel>("line");
   const [contactId, setContactId]           = useState("");
 
-  // Validation
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string }>({});
   const [submitError, setSubmitError] = useState("");
 
-  // Load availability for the visible month (re-runs as the user browses months)
+  // Re-format date label when language changes
+  useEffect(() => {
+    setDate(isoToLabel(dateIso, t.dow, t.monthsShort, t.yearOffset));
+  }, [lang, dateIso]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     let cancelled = false;
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const monthStart = startOfMonth(viewMonth);
-    const start = monthStart < today ? today : monthStart;           // never request the past
+    const start = monthStart < today ? today : monthStart;
     const endOfMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
     const days = Math.floor((endOfMonth.getTime() - start.getTime()) / 86_400_000) + 1;
     if (days < 1) return;
@@ -561,25 +542,23 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
           for (const d of data) next[d.date] = d;
           return next;
         });
-        // On the very first load, jump to the first available upcoming day
         if (firstLoadRef.current) {
           firstLoadRef.current = false;
           const first = data.find((d) => d.available);
           if (first) {
             setDateIso(first.date);
-            setDate(isoToLabel(first.date));
+            setDate(isoToLabel(first.date, t.dow, t.monthsShort, t.yearOffset));
             const firstHour = TIME_SLOTS.find((h) => first.hours[h] ?? true);
             if (firstHour) setTimeSlot(firstHour);
           }
         }
       })
-      .catch(() => {}) // keep today's date already set
+      .catch(() => {})
       .finally(() => { if (!cancelled) setAvailLoading(false); });
 
     return () => { cancelled = true; };
-  }, [viewMonth]);
+  }, [viewMonth]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Pre-fill when joining a trip
   useEffect(() => {
     if (!joinTripProp) return;
     setDate(joinTripProp.date);
@@ -594,10 +573,9 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
 
   const handleDateSelect = (iso: string) => {
     setDateIso(iso);
-    setDate(isoToLabel(iso));
+    setDate(isoToLabel(iso, t.dow, t.monthsShort, t.yearOffset));
     const avail = availByDate[iso];
     if (avail && !(avail.hours[timeSlot] ?? true)) {
-      // Current time slot not available on this date — pick first available
       const firstAvail = TIME_SLOTS.find((h) => avail.hours[h] ?? true);
       if (firstAvail) setTimeSlot(firstAvail);
     }
@@ -608,15 +586,14 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const photoTotal = photoPermission === "private" && paddlers >= 2 ? PRIVATE_PHOTO_PRICE * paddlers : 0;
   const baseTotal = selectedRoute.price * paddlers;
   const total = baseTotal + photoTotal;
-  const stepNames = ["วัน", "รอบ", "เส้นทาง", "ผู้พาย", "ติดต่อ"];
 
   const next = () => setStep((s) => Math.min(s + 1, 4));
   const prev = () => setStep((s) => Math.max(s - 1, isJoin ? 3 : 0));
 
   const validate = () => {
     const errs: { name?: string; phone?: string } = {};
-    if (!name.trim()) errs.name = "กรุณากรอกชื่อผู้จอง";
-    if (!phone.trim()) errs.phone = "กรุณากรอกเบอร์โทรหรือ LINE ID";
+    if (!name.trim()) errs.name = t.nameError;
+    if (!phone.trim()) errs.phone = t.phoneError;
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -640,7 +617,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
       setBookingId(result.id ?? "");
       setConfirmed(true);
     } else {
-      setSubmitError(result.error ?? "เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setSubmitError(result.error ?? t.errorGeneric);
     }
   };
 
@@ -656,36 +633,33 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
 
   return (
     <div id="book" style={cardStyle}>
-      {/* JOIN-mode banner */}
       {isJoin && joinTripProp && (
         <div style={{ margin: "-26px -26px 18px", padding: "12px 22px", background: "var(--sup-teal)", color: "#fff", borderTopLeftRadius: 16, borderTopRightRadius: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
             <span style={{ width: 22, height: 22, borderRadius: 999, background: "rgba(255,255,255,0.22)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>↗</span>
             <div style={{ fontFamily: "var(--font-kanit)", fontSize: 14, minWidth: 0 }}>
-              <span style={{ fontWeight: 500, whiteSpace: "nowrap" }}>กำลังร่วมทริปของ {joinTripProp.host}</span>
-              <span style={{ fontWeight: 300, fontSize: 12, opacity: 0.82, marginLeft: 8, whiteSpace: "nowrap" }}>· {joinTripProp.joined}/{joinTripProp.max} บอร์ด</span>
+              <span style={{ fontWeight: 500, whiteSpace: "nowrap" }}>{t.joiningTrip(joinTripProp.host)}</span>
+              <span style={{ fontWeight: 300, fontSize: 12, opacity: 0.82, marginLeft: 8, whiteSpace: "nowrap" }}>{t.joinBoards(joinTripProp.joined, joinTripProp.max)}</span>
             </div>
           </div>
-          <button onClick={onClearJoin} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", borderRadius: 999, padding: "4px 12px", fontFamily: "var(--font-kanit)", fontSize: 12, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>เริ่มทริปใหม่</button>
+          <button onClick={onClearJoin} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.4)", color: "#fff", borderRadius: 999, padding: "4px 12px", fontFamily: "var(--font-kanit)", fontSize: 12, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>{t.newTrip}</button>
         </div>
       )}
 
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14, marginBottom: 18 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="eyebrow">จองง่ายใน 30 วินาที</div>
-          <div style={{ fontFamily: "var(--font-kanit)", fontSize: 24, fontWeight: 700, color: "var(--fg-1)", marginTop: 4, lineHeight: 1.15, letterSpacing: "-0.01em" }}>จองทริปพายซับ</div>
-          <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 13, color: "var(--fg-2)", marginTop: 4 }}>ยกเลิกฟรี · จ่ายหน้างาน · รวมถ่ายภาพ</div>
+          <div className="eyebrow">{t.eyebrow}</div>
+          <div style={{ fontFamily: "var(--font-kanit)", fontSize: 24, fontWeight: 700, color: "var(--fg-1)", marginTop: 4, lineHeight: 1.15, letterSpacing: "-0.01em" }}>{t.title}</div>
+          <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 13, color: "var(--fg-2)", marginTop: 4 }}>{t.sub}</div>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
           <div style={{ fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 22, color: "var(--sup-teal)", lineHeight: 1, whiteSpace: "nowrap" }}>฿{selectedRoute.price.toLocaleString()}</div>
-          <div style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: "var(--fg-3)", marginTop: 2, whiteSpace: "nowrap" }}>/ บอร์ด</div>
+          <div style={{ fontFamily: "var(--font-inter)", fontSize: 11, color: "var(--fg-3)", marginTop: 2, whiteSpace: "nowrap" }}>{t.perBoard}</div>
         </div>
       </div>
 
-      {/* Progress dots */}
       <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
-        {stepNames.map((label, i) => {
+        {t.steps.map((label, i) => {
           const locked = isJoin && i < 3;
           return (
             <div key={label} style={{ flex: 1, opacity: locked ? 0.55 : 1 }}>
@@ -698,7 +672,6 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
         })}
       </div>
 
-      {/* Step content */}
       <div style={{ minHeight: 300 }}>
         {step === 0 && <StepWhen dateIso={dateIso} onSelect={handleDateSelect} availByDate={availByDate} loading={availLoading} viewMonth={viewMonth} setViewMonth={setViewMonth} />}
         {step === 1 && <StepTime timeSlot={timeSlot} setTimeSlot={setTimeSlot} availByDate={availByDate} dateIso={dateIso} loading={availLoading} />}
@@ -720,39 +693,36 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
         )}
       </div>
 
-      {/* Submit error */}
       {submitError && (
         <div style={{ margin: "12px 0 0", padding: "10px 14px", background: "#FFF1F0", borderRadius: 8, fontSize: 13, color: "var(--danger)", fontWeight: 500 }}>
           ⚠ {submitError}
         </div>
       )}
 
-      {/* Navigation */}
       <div style={{ marginTop: 16, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <button onClick={prev} disabled={step === 0 || (isJoin && step <= 3)} className="btn btn-ghost" style={{ opacity: step === 0 || (isJoin && step <= 3) ? 0.35 : 1 }}>← ย้อน</button>
+        <button onClick={prev} disabled={step === 0 || (isJoin && step <= 3)} className="btn btn-ghost" style={{ opacity: step === 0 || (isJoin && step <= 3) ? 0.35 : 1 }}>{t.back}</button>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           {step >= 2 && (
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "var(--fg-3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", whiteSpace: "nowrap" }}>รวม</div>
+              <div style={{ fontFamily: "var(--font-inter)", fontSize: 10, color: "var(--fg-3)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", whiteSpace: "nowrap" }}>{t.totalLabel}</div>
               <div style={{ fontFamily: "var(--font-inter)", fontSize: 20, fontWeight: 700, color: "var(--fg-1)", whiteSpace: "nowrap" }}>฿{total.toLocaleString()}</div>
             </div>
           )}
           {step < 4 ? (
-            <button onClick={next} className="btn btn-primary" style={{ padding: "13px 22px" }}>ต่อไป →</button>
+            <button onClick={next} className="btn btn-primary" style={{ padding: "13px 22px" }}>{t.next}</button>
           ) : (
             <button onClick={handleSubmit} disabled={submitting} className="btn btn-primary" style={{ padding: "13px 26px", boxShadow: "var(--shadow-glow-orange), 0 0 0 4px rgba(255,140,0,0.18)", opacity: submitting ? 0.7 : 1 }}>
-              {submitting ? "กำลังส่ง..." : (isJoin ? "ร่วมทริปเลย" : "ยืนยันการจอง")}
+              {submitting ? t.submitting : (isJoin ? t.joinConfirm : t.confirm)}
             </button>
           )}
         </div>
       </div>
 
-      {/* Trust chips */}
       <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--border-1)", display: "flex", gap: 18, flexWrap: "wrap", fontSize: 12, color: "var(--fg-2)", fontWeight: 400 }}>
-        <TrustChip label="ยกเลิกฟรี 24 ชม." />
-        <TrustChip label="ไม่ต้องใช้บัตรเครดิต" />
-        <TrustChip label="จ่ายหน้างาน" />
-        <TrustChip label="ภาษาไทย & EN" />
+        <TrustChip label={t.chip1} />
+        <TrustChip label={t.chip2} />
+        <TrustChip label={t.chip3} />
+        <TrustChip label={t.chip4} />
       </div>
     </div>
   );

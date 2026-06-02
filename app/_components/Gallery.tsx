@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useLang } from "./lang-context";
+import { T } from "./translations";
 
 // เพิ่มรูปได้เรื่อย ๆ แค่เพิ่มรายการในนี้ — ตั้ง big: true เพื่อให้รูปนั้นกินพื้นที่ใหญ่ขึ้น
 const SHOTS = [
@@ -56,16 +58,18 @@ function Cell({ src, cap, big }: { src: string; cap: string; big?: boolean }) {
 }
 
 export default function Gallery() {
+  const { lang } = useLang();
+  const t = T[lang].gallery;
   return (
     <section id="gallery" style={{ background: "var(--bg-page)" }} className="section-pad">
       <div className="container">
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginBottom: 40, flexWrap: "wrap" }}>
           <div>
-            <div className="eyebrow">สัปดาห์ที่แล้ว</div>
-            <h2 className="section-title">เรา<span className="accent">ถ่ายให้</span></h2>
-            <p className="section-sub">บางส่วนจากสัปดาห์ที่แล้ว · ทีมเราถ่ายทั้งหมดบนน้ำ ไม่มีการจัดท่า</p>
+            <div className="eyebrow">{t.eyebrow}</div>
+            <h2 className="section-title">{t.title.pre}<span className="accent">{t.title.accent}</span>{t.title.post}</h2>
+            <p className="section-sub">{t.sub}</p>
           </div>
-          <a href="#book" className="btn btn-secondary">มาให้เราถ่ายให้ →</a>
+          <a href="#book" className="btn btn-secondary">{t.cta}</a>
         </div>
 
         <div

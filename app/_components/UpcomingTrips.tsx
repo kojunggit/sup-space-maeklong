@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { ROUTES_BY_ID, type UpcomingTrip } from "./trips-data";
 import SpecialTripBookingModal from "./SpecialTripBookingModal";
+import { useLang } from "./lang-context";
+import { T } from "./translations";
 
 interface UpcomingTripsProps {
   trips: UpcomingTrip[];
@@ -11,6 +13,8 @@ interface UpcomingTripsProps {
 
 function TripCard({ trip, onJoin }: { trip: UpcomingTrip; onJoin: () => void }) {
   const [hover, setHover] = useState(false);
+  const { lang } = useLang();
+  const t = T[lang].trips;
   const route = ROUTES_BY_ID[trip.routeId];
   const full = trip.joined >= trip.max;
   // Handle both legacy ("MORNING"/"AFTERNOON") and new hourly ("09:00") slots
@@ -62,7 +66,7 @@ function TripCard({ trip, onJoin }: { trip: UpcomingTrip; onJoin: () => void }) 
 
       {/* Route */}
       <div style={{ padding: "8px 0", borderTop: "1px dashed var(--border-1)", borderBottom: "1px dashed var(--border-1)" }}>
-        <div style={{ fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 600, color: "var(--sup-teal)", textTransform: "uppercase", letterSpacing: "0.14em" }}>เส้นทาง</div>
+        <div style={{ fontFamily: "var(--font-inter)", fontSize: 10, fontWeight: 600, color: "var(--sup-teal)", textTransform: "uppercase", letterSpacing: "0.14em" }}>{t.route}</div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginTop: 4 }}>
           <span style={{ fontFamily: "var(--font-kanit)", fontWeight: 500, fontSize: 16, color: "var(--fg-1)" }}>{route?.name ?? "Custom"}</span>
           <span style={{ fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 16, color: "var(--sup-teal)", whiteSpace: "nowrap" }}>฿{route?.price ?? "?"}</span>
@@ -74,10 +78,10 @@ function TripCard({ trip, onJoin }: { trip: UpcomingTrip; onJoin: () => void }) 
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
           <span style={{ fontFamily: "var(--font-kanit)", fontWeight: 500, fontSize: 13, color: "var(--fg-2)" }}>
-            จองโดย <strong style={{ color: "var(--fg-1)" }}>{trip.host}</strong>
+            {t.bookedBy} <strong style={{ color: "var(--fg-1)" }}>{trip.host}</strong>
           </span>
           <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600, color: full ? "var(--danger)" : "var(--fg-2)", whiteSpace: "nowrap" }}>
-            {trip.joined}/{trip.max} บอร์ด
+            {trip.joined}/{trip.max} {t.boards}
           </span>
         </div>
         <div style={{ height: 6, borderRadius: 999, background: "var(--sand-200)", overflow: "hidden" }}>
@@ -95,7 +99,7 @@ function TripCard({ trip, onJoin }: { trip: UpcomingTrip; onJoin: () => void }) 
           ...(full ? { background: "var(--slate-200)", color: "var(--fg-3)", boxShadow: "none", cursor: "not-allowed" } : {}),
         }}
       >
-        {full ? "เต็มแล้ว" : `ร่วมทริปนี้ +฿${route?.price ?? 0}`}
+        {full ? t.full : `${t.join} +฿${route?.price ?? 0}`}
       </button>
     </div>
   );
@@ -103,6 +107,8 @@ function TripCard({ trip, onJoin }: { trip: UpcomingTrip; onJoin: () => void }) 
 
 function SpecialTripCard({ trip, onJoin }: { trip: UpcomingTrip; onJoin: () => void }) {
   const [hover, setHover] = useState(false);
+  const { lang } = useLang();
+  const t = T[lang].trips;
   const full = trip.joined >= trip.max;
   const isLegacy   = trip.timeSlot === "MORNING" || trip.timeSlot === "AFTERNOON";
   const timeLabel  = trip.timeSlot === "MORNING" ? "เช้า" : trip.timeSlot === "AFTERNOON" ? "บ่าย" : `${trip.timeSlot} น.`;
@@ -172,7 +178,7 @@ function SpecialTripCard({ trip, onJoin }: { trip: UpcomingTrip; onJoin: () => v
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
           <span style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 12, color: "#7B1FA2" }}>จัดโดยทีมงาน</span>
           <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600, color: full ? "var(--danger)" : "#7B1FA2" }}>
-            {trip.joined}/{trip.max} บอร์ด
+            {trip.joined}/{trip.max} {t.boards}
           </span>
         </div>
         <div style={{ height: 6, borderRadius: 999, background: "rgba(123,31,162,0.15)", overflow: "hidden" }}>
@@ -194,7 +200,7 @@ function SpecialTripCard({ trip, onJoin }: { trip: UpcomingTrip; onJoin: () => v
           transition: "all 180ms",
         }}
       >
-        {full ? "เต็มแล้ว" : "ร่วมทริปพิเศษนี้ →"}
+        {full ? t.full : `${t.join} →`}
       </button>
     </div>
   );
@@ -202,6 +208,8 @@ function SpecialTripCard({ trip, onJoin }: { trip: UpcomingTrip; onJoin: () => v
 
 export default function UpcomingTrips({ trips, onJoin }: UpcomingTripsProps) {
   const [specialModalTrip, setSpecialModalTrip] = useState<UpcomingTrip | null>(null);
+  const { lang } = useLang();
+  const t = T[lang].trips;
 
   const handleJoin = (trip: UpcomingTrip) => {
     if (trip.isSpecial) {
@@ -216,13 +224,13 @@ export default function UpcomingTrips({ trips, onJoin }: UpcomingTripsProps) {
       <div className="container">
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginBottom: 32, flexWrap: "wrap" }}>
           <div>
-            <div className="eyebrow">ทริปที่กำลังจะมา</div>
+            <div className="eyebrow">{t.eyebrow}</div>
             <h2 className="section-title">
-              ร่วมพายกับ<span className="accent">เพื่อนใหม่</span>
+              {t.title.pre}<span className="accent">{t.title.accent}</span>{t.title.post}
             </h2>
-            <p className="section-sub">ลูกค้าจองทริปไว้แล้ว · คุณกดร่วมไปได้เลย ไม่ต้องตั้งกลุ่มเอง · สูงสุดทริปละ 8 บอร์ด</p>
+            <p className="section-sub">{t.sub}</p>
           </div>
-          <a href="#book" className="btn btn-teal" style={{ padding: "11px 20px", fontSize: 14 }}>หรือ จองทริปใหม่ →</a>
+          <a href="#book" className="btn btn-teal" style={{ padding: "11px 20px", fontSize: 14 }}>{t.newTrip} →</a>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))", gap: 14 }}>
@@ -230,13 +238,13 @@ export default function UpcomingTrips({ trips, onJoin }: UpcomingTripsProps) {
             <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "48px 24px" }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>🛶</div>
               <div style={{ fontFamily: "var(--font-kanit)", fontSize: 18, fontWeight: 500, color: "var(--fg-2)", marginBottom: 8 }}>
-                ยังไม่มีทริปที่กำลังจะมา
+                {t.noTrips}
               </div>
               <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 14, color: "var(--fg-3)", marginBottom: 24, lineHeight: 1.6 }}>
-                จองก่อนเป็นคนแรก แล้วให้เพื่อนๆ กดร่วมทริปมาด้วยกัน!
+                {lang === "th" ? "จองก่อนเป็นคนแรก แล้วให้เพื่อนๆ กดร่วมทริปมาด้วยกัน!" : "Be the first to book, then invite friends to join your trip!"}
               </div>
               <a href="#book" className="btn btn-primary" style={{ padding: "12px 24px", fontSize: 14 }}>
-                จองทริปใหม่ →
+                {t.newTrip} →
               </a>
             </div>
           ) : (

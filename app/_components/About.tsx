@@ -1,3 +1,8 @@
+"use client";
+
+import { useLang } from "./lang-context";
+import { T } from "./translations";
+
 function Stat({ n, label }: { n: string; label: string }) {
   return (
     <div>
@@ -8,6 +13,9 @@ function Stat({ n, label }: { n: string; label: string }) {
 }
 
 export default function About({ rating, reviewCount }: { rating: number; reviewCount: number }) {
+  const { lang } = useLang();
+  const t = T[lang].about;
+
   return (
     <section id="about" style={{ background: "var(--teal-50)", position: "relative", overflow: "hidden" }} className="section-pad">
       <div style={{ position: "absolute", top: -120, right: -100, width: 360, height: 360, borderRadius: "50%", background: "var(--sup-orange)", opacity: 0.10, filter: "blur(8px)" }} />
@@ -20,30 +28,34 @@ export default function About({ rating, reviewCount }: { rating: number; reviewC
               <div style={{ width: 44, height: 44, borderRadius: 999, background: "var(--sup-orange)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-inter)", fontSize: 18, fontWeight: 700, color: "#fff" }}>{rating.toFixed(1)}</div>
               <div>
                 <div style={{ fontFamily: "var(--font-inter)", fontSize: 13, fontWeight: 600, color: "var(--fg-1)" }}>★★★★★</div>
-                <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 12, color: "var(--fg-3)" }}>{reviewCount.toLocaleString()} รีวิว Google</div>
+                <div style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 12, color: "var(--fg-3)" }}>{t.reviewCount(reviewCount)}</div>
               </div>
             </div>
           </div>
 
           <div>
-            <div className="eyebrow">เกี่ยวกับเรา</div>
-            <h2 className="section-title">มากกว่าการพาย SUP คือการได้เห็น<span className="accent" style={{ whiteSpace: "normal", wordBreak: "break-word" }}>แม่กลองในมุมที่คนส่วนใหญ่ไม่เคยเห็น</span></h2>
+            <div className="eyebrow">{t.eyebrow}</div>
+            <h2 className="section-title">
+              {t.title.pre}
+              <span className="accent" style={{ whiteSpace: "normal", wordBreak: "break-word" }}>{t.title.accent}</span>
+              {t.title.post}
+            </h2>
             <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 400, fontSize: 17, lineHeight: 1.7, color: "var(--fg-1)", margin: "12px 0 18px" }}>
-              คลองสายเล็กที่ซ่อนตัวอยู่หลังตลาดน้ำ สวนมะพร้าวริมฝั่งน้ำ บ้านไม้เก่าแก่ที่ยังคงวิถีชีวิตดั้งเดิม
+              {t.p1}
             </p>
             <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 16, lineHeight: 1.75, color: "var(--fg-2)", margin: "0 0 16px" }}>
-              SUP Space Maeklong เกิดขึ้นจากความหลงใหลในเสน่ห์ของลุ่มน้ำแม่กลอง และความตั้งใจที่อยากให้ผู้คนได้สัมผัสธรรมชาติ วัฒนธรรม และชุมชนท้องถิ่นอย่างใกล้ชิด ผ่านการเดินทางที่เรียบง่ายบน Stand Up Paddle Board
+              {t.p2}
             </p>
             <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 16, lineHeight: 1.75, color: "var(--fg-2)", margin: "0 0 16px" }}>
-              เราไม่ได้พาคุณมาเพียงเพื่อพาย SUP แต่พาคุณออกไปค้นพบมุมเล็กๆ ที่นักท่องเที่ยวส่วนใหญ่อาจไม่มีโอกาสได้เห็น และเราเชื่อว่าจะทำให้คุณหลงรักสมุทรสงครามมากขึ้น
+              {t.p3}
             </p>
             <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 16, lineHeight: 1.75, color: "var(--fg-2)", margin: "0 0 28px" }}>
-              ไม่ว่าคุณจะเป็นมือใหม่ นักท่องเที่ยวสายธรรมชาติ หรือคนที่กำลังมองหาช่วงเวลาสงบๆ ห่างจากความวุ่นวายของเมือง SUP Space Maeklong พร้อมดูแลให้ทุกการพายเป็นประสบการณ์ที่สนุก ปลอดภัย และน่าจดจำ
+              {t.p4}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 18 }}>
-              <Stat n="600+" label="ลูกค้าฤดูกาลนี้" />
-              <Stat n="6 ปี" label="บนแม่กลอง" />
-              <Stat n="100%" label="ปลอดภัยมือใหม่" />
+              <Stat n={t.s1n} label={t.s1l} />
+              <Stat n={t.s2n} label={t.s2l} />
+              <Stat n={t.s3n} label={t.s3l} />
             </div>
           </div>
         </div>

@@ -1,5 +1,9 @@
+"use client";
+
 import type { PlaceReview } from "@/app/lib/google-places";
 import Image from "next/image";
+import { useLang } from "./lang-context";
+import { T } from "./translations";
 
 interface ReviewsProps {
   reviews: PlaceReview[];
@@ -9,7 +13,7 @@ interface ReviewsProps {
 
 function StarRow({ count = 5 }: { count?: number }) {
   return (
-    <span aria-label={`${count} ดาว`} style={{ color: "#FFC273", fontSize: 14, letterSpacing: 1 }}>
+    <span aria-label={`${count} stars`} style={{ color: "#FFC273", fontSize: 14, letterSpacing: 1 }}>
       {"★".repeat(count)}{"☆".repeat(5 - count)}
     </span>
   );
@@ -18,39 +22,20 @@ function StarRow({ count = 5 }: { count?: number }) {
 function ReviewCard({ review }: { review: PlaceReview }) {
   return (
     <article style={{
-      background: "#fff",
-      borderRadius: 14,
-      border: "1px solid var(--border-1)",
-      boxShadow: "var(--shadow-sm)",
-      padding: "24px 26px",
-      display: "flex",
-      flexDirection: "column",
-      gap: 14,
-      flex: "0 0 auto",
-      width: 340,
-      maxWidth: "82vw",
-      scrollSnapAlign: "start",
-      transition: "box-shadow 220ms var(--ease-out)",
-    }}
-      className="review-card"
-    >
-      {/* Author */}
+      background: "#fff", borderRadius: 14, border: "1px solid var(--border-1)",
+      boxShadow: "var(--shadow-sm)", padding: "24px 26px",
+      display: "flex", flexDirection: "column", gap: 14,
+      flex: "0 0 auto", width: 340, maxWidth: "82vw",
+      scrollSnapAlign: "start", transition: "box-shadow 220ms var(--ease-out)",
+    }} className="review-card">
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {review.authorPhoto ? (
-          <Image
-            src={review.authorPhoto}
-            alt={review.authorName}
-            width={42}
-            height={42}
-            style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
-          />
+          <Image src={review.authorPhoto} alt={review.authorName} width={42} height={42}
+            style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
         ) : (
-          <div style={{
-            width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
-            background: "var(--sup-teal)",
+          <div style={{ width: 42, height: 42, borderRadius: "50%", flexShrink: 0, background: "var(--sup-teal)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: "var(--font-kanit)", fontWeight: 600, fontSize: 16, color: "#fff",
-          }}>
+            fontFamily: "var(--font-kanit)", fontWeight: 600, fontSize: 16, color: "#fff" }}>
             {review.authorName.charAt(0)}
           </div>
         )}
@@ -69,24 +54,16 @@ function ReviewCard({ review }: { review: PlaceReview }) {
         </div>
       </div>
 
-      {/* Quote mark */}
       <div style={{ position: "relative" }}>
-        <span style={{
-          position: "absolute", top: -8, left: -4,
-          fontFamily: "Georgia, serif", fontSize: 48,
-          color: "var(--teal-100)", lineHeight: 1,
-          pointerEvents: "none", userSelect: "none",
-        }} aria-hidden="true">"</span>
-        <p style={{
-          margin: 0, paddingLeft: 20,
-          fontFamily: "var(--font-kanit)", fontWeight: 300,
-          fontSize: 15, lineHeight: 1.7, color: "var(--fg-2)",
-        }}>
+        <span style={{ position: "absolute", top: -8, left: -4, fontFamily: "Georgia, serif", fontSize: 48,
+          color: "var(--teal-100)", lineHeight: 1, pointerEvents: "none", userSelect: "none" }}
+          aria-hidden="true">"</span>
+        <p style={{ margin: 0, paddingLeft: 20, fontFamily: "var(--font-kanit)", fontWeight: 300,
+          fontSize: 15, lineHeight: 1.7, color: "var(--fg-2)" }}>
           {review.text}
         </p>
       </div>
 
-      {/* Google badge */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: "auto" }}>
         <svg width="14" height="14" viewBox="0 0 48 48" aria-hidden="true">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -103,16 +80,18 @@ function ReviewCard({ review }: { review: PlaceReview }) {
 }
 
 export default function Reviews({ reviews, rating, reviewCount }: ReviewsProps) {
+  const { lang } = useLang();
+  const t = T[lang].reviews;
+
   if (reviews.length === 0) return null;
 
   return (
     <section id="reviews" className="section-pad" style={{ background: "var(--bg-page)" }}>
       <div className="container">
-        {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 48 }}>
-          <div className="eyebrow" style={{ marginBottom: 10 }}>รีวิวจากผู้ใช้จริง</div>
+          <div className="eyebrow" style={{ marginBottom: 10 }}>{t.eyebrow}</div>
           <h2 className="section-title" style={{ margin: "0 auto 12px", textAlign: "center" }}>
-            เสียงจาก<span className="accent">นักพาย</span>ของเรา
+            {t.title.pre}<span className="accent">{t.title.accent}</span>{t.title.post}
           </h2>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
             <span style={{ fontFamily: "var(--font-inter)", fontSize: 40, fontWeight: 700, color: "var(--sup-teal)", lineHeight: 1 }}>
@@ -121,46 +100,26 @@ export default function Reviews({ reviews, rating, reviewCount }: ReviewsProps) 
             <div>
               <StarRow count={5} />
               <p style={{ margin: "4px 0 0", fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 14, color: "var(--fg-3)" }}>
-                จาก {reviewCount.toLocaleString()} รีวิวบน Google
+                {t.fromCount(reviewCount)}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Review cards — horizontal scroll */}
-        <div
-          className="reviews-scroll"
-          role="list"
-          aria-label="รีวิวจากลูกค้า"
-          style={{
-            display: "flex",
-            gap: 20,
-            overflowX: "auto",
-            scrollSnapType: "x mandatory",
-            paddingBottom: 14,
-            marginInline: "-24px",
-            paddingInline: 24,
-            WebkitOverflowScrolling: "touch",
-          }}
-        >
-          {reviews.map((review, i) => (
-            <ReviewCard key={i} review={review} />
-          ))}
+        <div className="reviews-scroll" role="list"
+          aria-label={lang === "th" ? "รีวิวจากลูกค้า" : "Customer reviews"}
+          style={{ display: "flex", gap: 20, overflowX: "auto", scrollSnapType: "x mandatory",
+            paddingBottom: 14, marginInline: "-24px", paddingInline: 24, WebkitOverflowScrolling: "touch" }}>
+          {reviews.map((review, i) => <ReviewCard key={i} review={review} />)}
         </div>
         <p style={{ textAlign: "center", marginTop: 4, fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 13, color: "var(--fg-4)" }}>
-          ← เลื่อนเพื่ออ่านเพิ่มเติม →
+          {t.scrollHint}
         </p>
 
-        {/* Link to Google Maps */}
         <div style={{ textAlign: "center", marginTop: 36 }}>
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=SUP+Space+Maeklong`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-secondary"
-            style={{ fontSize: 14 }}
-          >
-            ดูรีวิวทั้งหมดบน Google Maps →
+          <a href="https://www.google.com/maps/search/?api=1&query=SUP+Space+Maeklong"
+            target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ fontSize: 14 }}>
+            {t.mapsLink}
           </a>
         </div>
       </div>
