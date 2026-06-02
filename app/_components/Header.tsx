@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { useLang } from "./lang-context";
+import { T } from "./translations";
 
 interface HeaderProps {
   onBookClick: () => void;
@@ -9,6 +11,8 @@ interface HeaderProps {
 
 export default function Header({ onBookClick }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
+  const { lang, toggleLang } = useLang();
+  const t = T[lang].header;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 80);
@@ -48,11 +52,11 @@ export default function Header({ onBookClick }: HeaderProps) {
 
         <nav style={{ display: "flex", gap: 28, alignItems: "center" }} aria-label="Primary">
           {[
-            { href: "#services", label: "บริการ" },
-            { href: "#trips",    label: "ทริป" },
-            { href: "#about",    label: "เกี่ยวกับเรา" },
-            { href: "#gallery",  label: "ภาพถ่าย" },
-            { href: "#contact",  label: "ติดต่อ" },
+            { href: "#services", label: t.services },
+            { href: "#trips",    label: t.trips },
+            { href: "#about",    label: t.about },
+            { href: "#gallery",  label: t.gallery },
+            { href: "#contact",  label: t.contact },
           ].map((link) => (
             <a
               key={link.href}
@@ -67,21 +71,25 @@ export default function Header({ onBookClick }: HeaderProps) {
             </a>
           ))}
 
-          <span
+          <button
+            onClick={toggleLang}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "4px 10px",
               border: `1px solid ${scrolled ? "var(--border-2)" : "rgba(255,255,255,0.5)"}`,
-              color: linkColor, borderRadius: 999,
+              color: linkColor, borderRadius: 999, background: "transparent", cursor: "pointer",
               fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600,
-              whiteSpace: "nowrap",
+              whiteSpace: "nowrap", transition: "all 180ms var(--ease-out)",
             }}
+            aria-label={lang === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
           >
-            TH · EN
-          </span>
+            <span style={{ opacity: lang === "th" ? 1 : 0.45 }}>TH</span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span style={{ opacity: lang === "en" ? 1 : 0.45 }}>EN</span>
+          </button>
 
           <button onClick={onBookClick} className="btn btn-primary" style={{ padding: "10px 18px", fontSize: 14 }}>
-            จองเลย
+            {t.book}
           </button>
         </nav>
       </div>

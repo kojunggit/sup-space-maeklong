@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useLang } from "./lang-context";
+import { T } from "./translations";
 
-const SERVICES = [
-  { eyebrow: "ทัวร์ไกด์", title: "13 เส้นทางพาย", desc: "สั้น กลาง ไกล · กาแฟริมคลอง · ตลาดน้ำในตำนาน · 3 ตลาดน้ำ 25 กม · ทีมเรารู้น้ำขึ้นน้ำลง และจุดถ่ายภาพดีที่สุด", bullets: ["ระยะใกล้ ฿500/บอร์ด · 2 ชม", "ระยะกลาง ฿700–750", "ระยะไกล ฿900 · 16–25 กม"], accent: "var(--sup-teal)", img: "/images/KOSI4747.jpg", href: "/routes" },
-  { eyebrow: "มือใหม่ ฟรี!", title: "สอนพายเบื้องต้น", desc: "ครั้งแรกเลย? เราสอนพื้นฐานให้ก่อนลงน้ำเสมอ · ทรงตัว · พาย · เลี้ยว · ฟรีไม่มีค่าใช้จ่ายเพิ่ม", bullets: ["บรีฟความปลอดภัย", "ฝึกบนฝั่งก่อนลงน้ำ", "เสื้อชูชีพทุกคน"], accent: "var(--sup-orange)", img: "/images/KOSI6260.jpg" },
-  { eyebrow: "เก็บความทรงจำ", title: "ทีมถ่ายภาพ", desc: "เราถ่ายให้ฟรีสำหรับลง Social media · ถ้าอยากเก็บส่วนตัว มีบริการ private +฿500/คน", bullets: ["ฟรี: ภาพประชาสัมพันธ์", "ส่งทาง LINE", "Private +฿500/คน (ขั้นต่ำ 2 คน)"], accent: "var(--orange-600)", img: "/images/KOSI6162.jpg", badge: "ยอดนิยม" },
-  { eyebrow: "สะดวกถึงประตู", title: "รับ-ส่งถึงที่พัก", desc: "ในรัศมี 5 กิโลเมตรจาก SUP Space Maeklong เรารับ-ส่งฟรี · เกินกว่านั้นคิดกิโลเมตรละ 7 บาท", bullets: ["ใน 5 กม · ฟรี", "เกิน 5 กม · 7฿/กม", "ไม่ต้องห่วงเรื่องที่จอด"], accent: "var(--sup-dark)", img: "/images/KOSI4714.jpg" },
-] as const;
+const CARD_ACCENTS = ["var(--sup-teal)", "var(--sup-orange)", "var(--orange-600)", "var(--sup-dark)"] as const;
+const CARD_IMGS    = ["/images/KOSI4747.jpg", "/images/KOSI6260.jpg", "/images/KOSI6162.jpg", "/images/KOSI4714.jpg"] as const;
+const CARD_HREFS   = ["/routes", undefined, undefined, undefined] as const;
 
 function PackageBadge({ title, price, hint, highlight }: { title: string; price: string; hint: string; highlight?: boolean }) {
   return (
@@ -24,10 +23,10 @@ function PackageBadge({ title, price, hint, highlight }: { title: string; price:
 
 interface ServiceCardProps {
   eyebrow: string; title: string; desc: string;
-  bullets: readonly string[]; accent: string; img: string; badge?: string; href?: string;
+  bullets: readonly string[]; accent: string; img: string; badge?: string; href?: string; linkText?: string;
 }
 
-function ServiceCard({ eyebrow, title, desc, bullets, accent, img, badge, href }: ServiceCardProps) {
+function ServiceCard({ eyebrow, title, desc, bullets, accent, img, badge, href, linkText }: ServiceCardProps) {
   const [hover, setHover] = useState(false);
   return (
     <div
@@ -71,7 +70,7 @@ function ServiceCard({ eyebrow, title, desc, bullets, accent, img, badge, href }
             onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.gap = "10px"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.gap = "6px"; }}
           >
-            ดูเส้นทางทั้งหมด <span style={{ fontSize: 15 }}>→</span>
+            {linkText ?? "ดูเส้นทางทั้งหมด"} <span style={{ fontSize: 15 }}>→</span>
           </a>
         )}
       </div>
@@ -80,16 +79,25 @@ function ServiceCard({ eyebrow, title, desc, bullets, accent, img, badge, href }
 }
 
 export default function Services() {
+  const { lang } = useLang();
+  const t = T[lang].services;
+  const SERVICES = t.cards.map((card, i) => ({
+    ...card,
+    accent: CARD_ACCENTS[i],
+    img:    CARD_IMGS[i],
+    href:   CARD_HREFS[i],
+  }));
+
   return (
     <section id="services" style={{ background: "var(--bg-page)" }} className="section-pad">
       <div className="container">
         <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 24, marginBottom: 44, flexWrap: "wrap" }}>
           <div>
-            <div className="eyebrow">บริการของเรา</div>
-            <h2 className="section-title">มากกว่าให้<span className="accent">เช่าบอร์ด</span></h2>
-            <p className="section-sub">สี่อย่างที่เราทำได้ดี · ทัวร์ไกด์พร้อม 13 เส้นทาง · สอนพายฟรี · ถ่ายภาพ · รับ-ส่งถึงที่พัก</p>
+            <div className="eyebrow">{t.eyebrow}</div>
+            <h2 className="section-title">{t.title.pre}<span className="accent">{t.title.accent}</span>{t.title.post}</h2>
+            <p className="section-sub">{t.sub}</p>
           </div>
-          <a href="#book" className="btn btn-secondary">ดูราคาทั้งหมด</a>
+          <a href="#book" className="btn btn-secondary">{t.priceCta}</a>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 20 }}>
@@ -98,13 +106,13 @@ export default function Services() {
 
         <div style={{ marginTop: 32, padding: "24px 28px", background: "var(--sup-dark)", color: "#fff", borderRadius: 12, display: "flex", gap: 32, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
           <div>
-            <div style={{ fontFamily: "var(--font-inter)", fontSize: 11, fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--sup-orange)" }}>SUP HEALTHY · แพคเกจรายเดือน</div>
-            <h3 style={{ margin: "6px 0 4px", fontFamily: "var(--font-kanit)", fontSize: 22, fontWeight: 700, color: "#fff", lineHeight: 1.25 }}>พายบ่อยๆ จ่ายน้อยลง</h3>
-            <p style={{ margin: 0, fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 14, color: "rgba(255,255,255,0.8)", lineHeight: 1.55 }}>สำหรับคนที่รักการพายเป็นประจำ · ไม่สามารถยกสิทธิ์ให้ผู้อื่นได้</p>
+            <div style={{ fontFamily: "var(--font-inter)", fontSize: 11, fontWeight: 600, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--sup-orange)" }}>{t.packageEyebrow}</div>
+            <h3 style={{ margin: "6px 0 4px", fontFamily: "var(--font-kanit)", fontSize: 22, fontWeight: 700, color: "#fff", lineHeight: 1.25 }}>{t.packageTitle}</h3>
+            <p style={{ margin: 0, fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 14, color: "rgba(255,255,255,0.8)", lineHeight: 1.55 }}>{t.packageDesc}</p>
           </div>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-            <PackageBadge title="พาย 10 ครั้ง" price="2,900" hint="ครั้งละไม่เกิน 3 ชม" />
-            <PackageBadge title="รายเดือน · ไม่จำกัด" price="3,500" hint="พายได้ไม่จำกัดจำนวน" highlight />
+            <PackageBadge title={t.pkg1Title} price="2,900" hint={t.pkg1Hint} />
+            <PackageBadge title={t.pkg2Title} price="3,500" hint={t.pkg2Hint} highlight />
           </div>
         </div>
       </div>

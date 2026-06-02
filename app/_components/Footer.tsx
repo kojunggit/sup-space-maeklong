@@ -1,4 +1,8 @@
+"use client";
+
 import Image from "next/image";
+import { useLang } from "./lang-context";
+import { T } from "./translations";
 
 const muted: React.CSSProperties = { fontFamily: "var(--font-kanit)", fontWeight: 300, margin: "6px 0", fontSize: 14, color: "rgba(255,255,255,0.78)", lineHeight: 1.6 };
 
@@ -25,6 +29,9 @@ function Social({ label, href }: { label: string; href: string }) {
 }
 
 export default function Footer() {
+  const { lang } = useLang();
+  const t = T[lang].footer;
+
   return (
     <footer id="contact" style={{ background: "var(--sup-dark)", color: "#fff", position: "relative" }}>
       <img src="/wave-divider.svg" alt="" style={{ width: "100%", height: 60, display: "block", position: "absolute", top: -30, left: 0, right: 0, filter: "drop-shadow(0 6px 0 var(--sup-dark))" }} />
@@ -33,7 +40,7 @@ export default function Footer() {
           <div>
             <Image src="/logo-mark.png" alt="SUP Space Maeklong" width={96} height={96} style={{ height: 96, width: "auto", filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.3))" }} />
             <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, marginTop: 14, fontSize: 14, lineHeight: 1.65, color: "rgba(255,255,255,0.78)", maxWidth: 340 }}>
-              พายซับบอร์ดริมแม่กลอง · มือใหม่ก็พายได้ · รวมถ่ายภาพ
+              {t.tagline}
             </p>
             <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
               <Social label="LINE" href="https://line.me/R/ti/p/@256pyxrx" />
@@ -44,7 +51,7 @@ export default function Footer() {
             </div>
           </div>
 
-          <FooterCol title="ที่ตั้ง">
+          <FooterCol title={t.locTitle}>
             <p style={muted}>5/1 ม. 2 ต.ยายแดง</p>
             <p style={muted}>อ.บางคนที จ.สมุทรสงคราม 75120</p>
             <a
@@ -52,21 +59,21 @@ export default function Footer() {
               target="_blank" rel="noopener noreferrer"
               style={{ ...muted, color: "var(--sup-orange)", textDecoration: "none", display: "inline-block", marginTop: 4 }}
             >
-              📍 ดูแผนที่ →
+              {t.mapLink}
             </a>
           </FooterCol>
 
-          <FooterCol title="เวลาเปิด">
-            <p style={muted}>7.00 น. – 18.00 น.</p>
-            <p style={{ ...muted, fontSize: 12, color: "rgba(255,255,255,0.55)" }}>กรุณานัดหมายล่วงหน้า</p>
+          <FooterCol title={t.hoursTitle}>
+            <p style={muted}>{t.hours}</p>
+            <p style={{ ...muted, fontSize: 12, color: "rgba(255,255,255,0.55)" }}>{t.hoursNote}</p>
           </FooterCol>
 
-          <FooterCol title="ติดต่อ">
+          <FooterCol title={t.contactTitle}>
             <p style={{ ...muted, fontFamily: "var(--font-inter)", fontSize: 17, fontWeight: 700, color: "#fff", letterSpacing: "0.02em" }}>083-714-6958</p>
             <p style={muted}>mrkosit@gmail.com</p>
             <p style={muted}>LINE : @256pyxrx</p>
             <p style={muted}>WhatsApp : 083-714-6958</p>
-            <a href="#book" className="btn btn-primary" style={{ marginTop: 10, padding: "10px 20px", fontSize: 13 }}>จองทริปเลย</a>
+            <a href="#book" className="btn btn-primary" style={{ marginTop: 10, padding: "10px 20px", fontSize: 13 }}>{t.bookCta}</a>
           </FooterCol>
         </div>
 
@@ -78,8 +85,8 @@ export default function Footer() {
           fontSize: 12, color: "rgba(255,255,255,0.55)",
           flexWrap: "wrap", gap: 12,
         }}>
-          <span>© SUP Space Maeklong · พายซับมาตั้งแต่ 2562</span>
-          <span style={{ color: "var(--sup-orange)", fontWeight: 400 }}>เจอกันที่แม่กลอง</span>
+          <span>{t.copyright}</span>
+          <span style={{ color: "var(--sup-orange)", fontWeight: 400 }}>{t.footerLine}</span>
         </div>
       </div>
 
