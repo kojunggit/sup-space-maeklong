@@ -1,0 +1,39 @@
+name: CI
+
+# รัน type-check + production build ทุกครั้งที่ push ขึ้น main หรือเปิด PR
+# จับ error แบบ syntax / type / build ก่อนที่จะถึง Vercel
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Type-check & build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # postinstall รัน `prisma generate` ให้ (ไม่ต้องต่อ DB)
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # รัน `next build` ตรงๆ (ข้าม `prisma db push` ใน npm script
+      # เพราะ CI ไม่มี database จริง) — ขั้นนี้คือสิ่งที่ Vercel รันตอน build
+      - name: Build
+        run: npx next build
+        env:
+          # dummy URL กัน module ที่อ่าน env ตอน import พัง (ไม่ได้ connect จริง)
+          PRISMA_DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
