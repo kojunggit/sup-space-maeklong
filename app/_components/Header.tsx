@@ -11,6 +11,7 @@ interface HeaderProps {
 
 export default function Header({ onBookClick }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { lang, toggleLang } = useLang();
   const t = T[lang].header;
 
@@ -23,11 +24,11 @@ export default function Header({ onBookClick }: HeaderProps) {
   const linkColor = scrolled ? "var(--fg-1)" : "#fff";
 
   const navLinks = [
-    { href: "#services", label: "บริการ" },
-    { href: "#trips",    label: "ทริป" },
-    { href: "#about",    label: "เกี่ยวกับเรา" },
-    { href: "#gallery",  label: "ภาพถ่าย" },
-    { href: "#contact",  label: "ติดต่อ" },
+    { href: "#services", label: t.services },
+    { href: "#trips",    label: t.trips },
+    { href: "#about",    label: t.about },
+    { href: "#gallery",  label: t.gallery },
+    { href: "#contact",  label: t.contact },
   ];
 
   return (
@@ -75,47 +76,56 @@ export default function Header({ onBookClick }: HeaderProps) {
               </a>
             ))}
 
-        <nav style={{ display: "flex", gap: 28, alignItems: "center" }} aria-label="Primary">
-          {[
-            { href: "#services", label: t.services },
-            { href: "#trips",    label: t.trips },
-            { href: "#about",    label: t.about },
-            { href: "#gallery",  label: t.gallery },
-            { href: "#contact",  label: t.contact },
-          ].map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-            <span
+            <button
+              onClick={toggleLang}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "4px 10px",
                 border: `1px solid ${scrolled ? "var(--border-2)" : "rgba(255,255,255,0.5)"}`,
-                color: linkColor, borderRadius: 999,
+                color: linkColor, borderRadius: 999, background: "transparent", cursor: "pointer",
                 fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600,
-                whiteSpace: "nowrap",
+                whiteSpace: "nowrap", transition: "all 180ms var(--ease-out)",
               }}
+              aria-label={lang === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
             >
-              TH · EN
-            </span>
+              <span style={{ opacity: lang === "th" ? 1 : 0.45 }}>TH</span>
+              <span style={{ opacity: 0.4 }}>·</span>
+              <span style={{ opacity: lang === "en" ? 1 : 0.45 }}>EN</span>
+            </button>
 
             <button onClick={onBookClick} className="btn btn-primary" style={{ padding: "10px 18px", fontSize: 14 }}>
-              จองเลย
+              {t.book}
             </button>
           </nav>
 
           {/* Mobile nav controls */}
           <div className="mobile-nav" style={{ display: "none", alignItems: "center", gap: 10 }}>
             <button
+              onClick={toggleLang}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "4px 9px",
+                border: `1px solid ${scrolled || menuOpen ? "var(--border-2)" : "rgba(255,255,255,0.5)"}`,
+                color: scrolled || menuOpen ? "var(--fg-1)" : "#fff",
+                borderRadius: 999, background: "transparent", cursor: "pointer",
+                fontFamily: "var(--font-inter)", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap",
+              }}
+              aria-label={lang === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
+            >
+              <span style={{ opacity: lang === "th" ? 1 : 0.45 }}>TH</span>
+              <span style={{ opacity: 0.4 }}>·</span>
+              <span style={{ opacity: lang === "en" ? 1 : 0.45 }}>EN</span>
+            </button>
+            <button
               onClick={onBookClick}
               className="btn btn-primary"
               style={{ padding: "8px 14px", fontSize: 13 }}
             >
-              จองเลย
+              {t.book}
             </button>
             <button
               onClick={() => setMenuOpen((v) => !v)}
-              aria-label="เมนู"
+              aria-label={lang === "th" ? "เมนู" : "Menu"}
               style={{
                 background: "none", border: "none", cursor: "pointer",
                 padding: "6px", borderRadius: 8,
@@ -147,29 +157,6 @@ export default function Header({ onBookClick }: HeaderProps) {
           </div>
         </div>
 
-          <button
-            onClick={toggleLang}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "4px 10px",
-              border: `1px solid ${scrolled ? "var(--border-2)" : "rgba(255,255,255,0.5)"}`,
-              color: linkColor, borderRadius: 999, background: "transparent", cursor: "pointer",
-              fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600,
-              whiteSpace: "nowrap", transition: "all 180ms var(--ease-out)",
-            }}
-            aria-label={lang === "th" ? "Switch to English" : "เปลี่ยนเป็นภาษาไทย"}
-          >
-            <span style={{ opacity: lang === "th" ? 1 : 0.45 }}>TH</span>
-            <span style={{ opacity: 0.4 }}>·</span>
-            <span style={{ opacity: lang === "en" ? 1 : 0.45 }}>EN</span>
-          </button>
-
-          <button onClick={onBookClick} className="btn btn-primary" style={{ padding: "10px 18px", fontSize: 14 }}>
-            {t.book}
-          </button>
-        </nav>
-      </div>
-    </header>
         {/* Mobile dropdown menu */}
         {menuOpen && (
           <nav
