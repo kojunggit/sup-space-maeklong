@@ -8,6 +8,31 @@ Deploy เว็บ SUP Space Maeklong (Next.js 15 + PostgreSQL) ขึ้น VP
 
 ---
 
+## ⚡ ติดตั้งแบบอัตโนมัติ (คำสั่งเดียวจบ)
+
+ถ้าไม่อยากทำทีละขั้น ใช้สคริปต์อัตโนมัติได้เลย — มันจะติดตั้งทุกอย่าง
+(Node, Postgres, Nginx, PM2, สร้าง DB, build, รันแอป, ตั้ง SSL) และ
+**ถามค่าที่จำเป็นตอนรัน** (โดเมน, รหัส DB, รหัส admin, Google keys):
+
+```bash
+ssh root@YOUR_VPS_IP
+# ดึงสคริปต์มาจาก repo (หรือ git clone ทั้ง repo มาก่อนก็ได้)
+curl -fsSLO https://raw.githubusercontent.com/kojunggit/sup-space-maeklong/main/deploy/setup-vps.sh
+sudo bash setup-vps.sh
+```
+
+> ก่อนรัน — ตั้ง DNS A record ของโดเมนให้ชี้มาที่ IP ของ VPS ก่อน
+> (ไม่งั้นขั้นขอ SSL จะยังไม่ผ่าน รันใหม่ทีหลังได้)
+
+อัปเดตเว็บครั้งต่อไป:
+```bash
+sudo bash /home/deploy/sup-space-maeklong/deploy/update.sh
+```
+
+ด้านล่างคือ **ขั้นตอนแบบ manual** (ทำเองทีละขั้น / เอาไว้เข้าใจว่าสคริปต์ทำอะไร)
+
+---
+
 ## 0. สิ่งที่ต้องมี
 
 - VPS (RAM อย่างน้อย 1 GB, แนะนำ 2 GB) รัน Ubuntu
