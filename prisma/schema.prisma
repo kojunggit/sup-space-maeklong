@@ -60,3 +60,57 @@ model SpecialTrip {
   status        String   @default("ACTIVE")
   createdAt     DateTime @default(now())
 }
+
+// ─── Membership / package system ──────────────────────────────────────────────
+// Members are identified by phone number (the membership ID). Each member can
+// hold multiple packages over time (renew / buy more). Each visit is logged.
+
+model Member {
+  id        String          @id @default(cuid())
+  phone     String          @unique          // canonical "0812345678"
+  name      String
+  email     String?
+  channel   String?                          // "line" | "whatsapp" | "messenger"
+  contactId String?                          // id/username on that channel
+  note      String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  packages  MemberPackage[]
+  visits    VisitLog[]
+
+  @@index([name])
+}
+
+model MemberPackage {
+  id         String     @id @default(cuid())
+  memberId   String
+  member     Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  type       String                          // "COUNT" | "MONTH"
+  status     String     @default("ACTIVE")   // COUNT: ACTIVE|USED_UP|CANCELLED
+                                              // MONTH: PENDING|ACTIVE|EXPIRED|CANCELLED
+  price      Int                             // 2900 / 3500 (price at purchase)
+  totalCount Int?                            // 10 for COUNT, null for MONTH
+  usedCount  Int        @default(0)
+  startDate  DateTime?                        // null = pending (MONTH not yet started)
+  endDate    DateTime?                        // startDate + 1 month
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  visits     VisitLog[]
+
+  @@index([memberId, status])
+}
+
+model VisitLog {
+  id          String        @id @default(cuid())
+  memberId    String
+  member      Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  packageId   String
+  package     MemberPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  packageType String                          // snapshot "COUNT" | "MONTH"
+  visitNumber Int?                            // COUNT: usedCount after this visit
+  via         String        @default("telegram")  // "telegram" | "admin"
+  voided      Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+
+  @@index([memberId, createdAt])
+}

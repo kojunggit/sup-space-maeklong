@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setTelegramConfig, testTelegramConfig } from "@/app/actions/settings";
+import {
+  setTelegramConfig, testTelegramConfig,
+  setTelegramWebhook, getTelegramWebhookInfo, deleteTelegramWebhook,
+} from "@/app/actions/settings";
 
 interface Props {
   initialToken:  string;
@@ -16,7 +19,37 @@ export default function TelegramSettings({ initialToken, initialChatId }: Props)
   const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Webhook (membership bot — receives phone numbers)
+  const [baseUrl, setBaseUrl] = useState("https://supspacemaeklong.com");
+  const [hookMsg, setHookMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
   const isDirty = token !== initialToken || chatId !== initialChatId;
+
+  const handleRegisterHook = () => {
+    setHookMsg(null);
+    startTransition(async () => {
+      const res = await setTelegramWebhook(baseUrl);
+      setHookMsg(res.ok
+        ? { ok: true,  text: `✓ เชื่อมต่อ webhook แล้ว: ${res.url}` }
+        : { ok: false, text: `⚠ ${res.error ?? "ไม่สำเร็จ"}` });
+    });
+  };
+  const handleHookInfo = () => {
+    setHookMsg(null);
+    startTransition(async () => {
+      const res = await getTelegramWebhookInfo();
+      setHookMsg(res.ok
+        ? { ok: !res.lastError, text: `URL: ${res.url} · ค้าง ${res.pending} · ${res.lastError ? "error: " + res.lastError : "ปกติ"}` }
+        : { ok: false, text: `⚠ ${res.error ?? "ไม่สำเร็จ"}` });
+    });
+  };
+  const handleDeleteHook = () => {
+    setHookMsg(null);
+    startTransition(async () => {
+      const res = await deleteTelegramWebhook();
+      setHookMsg(res.ok ? { ok: true, text: "✓ ลบ webhook แล้ว" } : { ok: false, text: `⚠ ${res.error ?? "ไม่สำเร็จ"}` });
+    });
+  };
 
   const handleSave = () => {
     setSaved(false);
@@ -142,6 +175,46 @@ export default function TelegramSettings({ initialToken, initialChatId }: Props)
             {isPending ? "กำลังบันทึก..." : "บันทึก"}
           </button>
         </div>
+      </div>
+
+      {/* ─── Membership bot webhook ─── */}
+      <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px dashed var(--border-1)" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-2)", marginBottom: 2 }}>
+          🤝 Webhook สมาชิก (รับเบอร์โทรเช็คสิทธิ์)
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 300, color: "var(--fg-4)", marginBottom: 10 }}>
+          เชื่อมต่อให้ bot รับข้อความเข้าได้ · ต้องตั้ง Bot Token + Chat ID และบันทึกก่อน
+        </div>
+        <label style={labelStyle}>โดเมนเว็บ (สำหรับ webhook URL)</label>
+        <input
+          value={baseUrl}
+          onChange={(e) => setBaseUrl(e.target.value)}
+          placeholder="https://supspacemaeklong.com"
+          style={inputStyle}
+        />
+        <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <button onClick={handleRegisterHook} disabled={isPending} style={{
+            padding: "8px 16px", borderRadius: 8, border: "none",
+            background: isPending ? "var(--border-2)" : "var(--sup-teal)", color: "#fff",
+            fontFamily: "var(--font-kanit)", fontSize: 13, fontWeight: 600, cursor: isPending ? "not-allowed" : "pointer",
+          }}>เชื่อมต่อ Webhook</button>
+          <button onClick={handleHookInfo} disabled={isPending} style={{
+            padding: "8px 16px", borderRadius: 8, border: "1.5px solid var(--sup-teal)",
+            background: "#fff", color: "var(--sup-teal)", fontFamily: "var(--font-kanit)", fontSize: 13, fontWeight: 600,
+            cursor: isPending ? "not-allowed" : "pointer",
+          }}>ตรวจสอบสถานะ</button>
+          <button onClick={handleDeleteHook} disabled={isPending} style={{
+            padding: "8px 16px", borderRadius: 8, border: "1.5px solid var(--border-2)",
+            background: "#fff", color: "var(--danger)", fontFamily: "var(--font-kanit)", fontSize: 13, fontWeight: 600,
+            cursor: isPending ? "not-allowed" : "pointer",
+          }}>ลบ Webhook</button>
+        </div>
+        {hookMsg && (
+          <div style={{
+            marginTop: 10, fontSize: 12, fontWeight: 500, lineHeight: 1.5,
+            color: hookMsg.ok ? "#389E0D" : "var(--danger)", wordBreak: "break-all",
+          }}>{hookMsg.text}</div>
+        )}
       </div>
     </div>
   );
