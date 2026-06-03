@@ -24,13 +24,24 @@ export default function SpecialTripManager({ initialTrips }: Props) {
   const set = (k: keyof typeof EMPTY, v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const canSubmit =
-    form.name.trim() && form.dateIso && form.timeSlot &&
-    form.location.trim() && Number(form.rentalPrice) > 0 &&
-    Number(form.ownBoardPrice) > 0;
+  // คืนรายชื่อช่องที่ยังกรอกไม่ครบ (ใช้ทั้งบอก user และกันส่งข้อมูลไม่ครบ)
+  const missingFields = () => {
+    const missing: string[] = [];
+    if (!form.name.trim())                  missing.push("ชื่อทริป");
+    if (!form.dateIso)                      missing.push("วันที่");
+    if (!form.location.trim())              missing.push("สถานที่นัดหมาย");
+    if (!(Number(form.rentalPrice) > 0))    missing.push("ราคาเช่าบอร์ด");
+    if (!(Number(form.ownBoardPrice) > 0))  missing.push("ราคานำบอร์ดมาเอง");
+    return missing;
+  };
 
   const handleCreate = () => {
     setSaved(false); setError(null);
+    const missing = missingFields();
+    if (missing.length > 0) {
+      setError(`กรุณากรอก: ${missing.join(", ")}`);
+      return;
+    }
     startTransition(async () => {
       const res = await createSpecialTrip({
         name:          form.name.trim(),
@@ -181,13 +192,13 @@ export default function SpecialTripManager({ initialTrips }: Props) {
           {error  && <span style={{ fontSize: 13, color: "var(--danger)", fontWeight: 600 }}>{error}</span>}
           <button
             onClick={handleCreate}
-            disabled={!canSubmit || isPending}
+            disabled={isPending}
             style={{
               marginLeft: "auto", padding: "9px 24px", borderRadius: 8, border: "none",
-              background: canSubmit && !isPending ? "var(--sup-teal)" : "var(--border-2)",
-              color: canSubmit && !isPending ? "#fff" : "var(--fg-4)",
+              background: isPending ? "var(--border-2)" : "var(--sup-teal)",
+              color: isPending ? "var(--fg-4)" : "#fff",
               fontFamily: "var(--font-kanit)", fontSize: 13, fontWeight: 600,
-              cursor: canSubmit && !isPending ? "pointer" : "not-allowed",
+              cursor: isPending ? "not-allowed" : "pointer",
               transition: "all 160ms",
             }}
           >
