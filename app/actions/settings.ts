@@ -179,3 +179,88 @@ export async function testTelegramConfig(): Promise<{ ok: boolean; error?: strin
     return { ok: false, error: String(err) };
   }
 }
+
+// ─── Telegram webhook (for the membership bot) ─────────────────────────────────
+
+const DEFAULT_SITE_URL = "https://supspacemaeklong.com";
+
+async function ensureWebhookSecret(prisma: ReturnType<typeof getPrisma>): Promise<string> {
+  const row = await prisma.setting.findUnique({ where: { key: "telegramWebhookSecret" } });
+  if (row?.value) return row.value;
+  const { randomBytes } = await import("crypto");
+  const secret = randomBytes(24).toString("hex");
+  await prisma.setting.upsert({
+    where:  { key: "telegramWebhookSecret" },
+    update: { value: secret },
+    create: { key: "telegramWebhookSecret", value: secret },
+  });
+  return secret;
+}
+
+/** Register the inbound webhook with Telegram (url + secret_token). */
+export async function setTelegramWebhook(baseUrl?: string): Promise<{ ok: boolean; url?: string; error?: string }> {
+  const config = await getTelegramConfig();
+  if (!config) return { ok: false, error: "ตั้งค่า Bot Token และ Chat ID ก่อน" };
+  const prisma = getPrisma();
+  try {
+    const secret = await ensureWebhookSecret(prisma);
+    const base = (baseUrl?.trim() || DEFAULT_SITE_URL).replace(/\/+$/, "");
+    const url = `${base}/api/telegram`;
+    const res = await fetch(`https://api.telegram.org/bot${config.token}/setWebhook`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url,
+        secret_token: secret,
+        allowed_updates: ["message", "callback_query"],
+        drop_pending_updates: true,
+      }),
+    });
+    const body = (await res.json().catch(() => ({}))) as { ok?: boolean; description?: string };
+    if (!res.ok || !body.ok) return { ok: false, error: body.description ?? `HTTP ${res.status}` };
+    await prisma.setting.upsert({
+      where:  { key: "telegramWebhookUrl" },
+      update: { value: url },
+      create: { key: "telegramWebhookUrl", value: url },
+    });
+    revalidatePath("/admin");
+    return { ok: true, url };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+export async function getTelegramWebhookInfo(): Promise<{
+  ok: boolean; url?: string; pending?: number; lastError?: string; error?: string;
+}> {
+  const config = await getTelegramConfig();
+  if (!config) return { ok: false, error: "ยังไม่ได้ตั้งค่า Bot" };
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${config.token}/getWebhookInfo`);
+    const body = (await res.json().catch(() => ({}))) as {
+      ok?: boolean; result?: { url?: string; pending_update_count?: number; last_error_message?: string };
+    };
+    if (!res.ok || !body.ok) return { ok: false, error: `HTTP ${res.status}` };
+    return {
+      ok: true,
+      url: body.result?.url || "(ยังไม่ได้ตั้ง)",
+      pending: body.result?.pending_update_count ?? 0,
+      lastError: body.result?.last_error_message,
+    };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
+export async function deleteTelegramWebhook(): Promise<{ ok: boolean; error?: string }> {
+  const config = await getTelegramConfig();
+  if (!config) return { ok: false, error: "ยังไม่ได้ตั้งค่า Bot" };
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${config.token}/deleteWebhook`, { method: "POST" });
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
