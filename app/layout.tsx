@@ -11,7 +11,7 @@ const kanit = Kanit({
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://sup-space-maeklong.vercel.app"),
+  metadataBase: new URL("https://supspacemaeklong.com"),
   title: "SUP Space Maeklong | พาย SUP เที่ยวตลาดน้ำแม่กลอง สมุทรสงคราม",
   description:
     "พาย SUP เที่ยวตลาดน้ำและวิถีชีวิตริมคลองแม่กลอง · SUP Maeklong & Paddle Board Thailand floating market tours in Samut Songkhram — beginner-friendly, guided, and one of the best things to do near Bangkok. A true Thailand local experience.",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     title: "SUP Space Maeklong | พาย SUP เที่ยวตลาดน้ำแม่กลอง",
     description:
       "SUP Maeklong paddle board floating market tours in Samut Songkhram — beginner-friendly guided trips, ~1 hour from Bangkok.",
-    url: "https://sup-space-maeklong.vercel.app",
+    url: "https://supspacemaeklong.com",
     siteName: "SUP Space Maeklong",
     locale: "th_TH",
     type: "website",
