@@ -1,15 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { prisma } from "@/app/lib/prisma";
 import {
   TIME_SLOTS, ROUTES_BY_ID,
   isDayClosed, isHourClosed, type ClosedSlotShape,
 } from "@/app/_components/trips-data";
-
-function getPrisma() {
-  const adapter = new PrismaPg(process.env.PRISMA_DATABASE_URL!);
-  return new PrismaClient({ adapter });
-}
 
 function toIso(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -54,8 +48,6 @@ export async function GET(req: NextRequest) {
   const limitIso  = toIso(limitDate);
 
   try {
-    const prisma = getPrisma();
-
     // Closed slots from settings
     const closedRow = await prisma.setting.findUnique({ where: { key: "closedSlots" } }).catch(() => null);
     const closedSlots: ClosedSlotShape[] = closedRow

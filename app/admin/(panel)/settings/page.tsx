@@ -1,4 +1,5 @@
-import { getMaxBoards, getClosedSlots, getTelegramConfig } from "@/app/actions/settings";
+import { getMaxBoards, getClosedSlots } from "@/app/actions/settings";
+import { readTelegramConfig } from "@/app/lib/telegram-config";
 import AdminSettings from "../../_components/AdminSettings";
 import ClosedSlotsSettings from "../../_components/ClosedSlotsSettings";
 import TelegramSettings from "../../_components/TelegramSettings";
@@ -9,7 +10,7 @@ export default async function SettingsPage() {
   const [maxBoards, closedSlots, telegramConfig] = await Promise.all([
     getMaxBoards(),
     getClosedSlots(),
-    getTelegramConfig(),
+    readTelegramConfig(),
   ]);
 
   return (

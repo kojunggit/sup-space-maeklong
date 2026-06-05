@@ -1,19 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  verifyAdminPassword, createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE,
+} from "@/app/lib/auth";
 
 export async function POST(req: NextRequest) {
-  const { password } = await req.json();
-  const secret = process.env.ADMIN_PASSWORD ?? "admin";
+  let password = "";
+  try {
+    const body = await req.json();
+    if (typeof body?.password === "string") password = body.password;
+  } catch {
+    /* malformed body → treated as empty password below */
+  }
 
-  if (password !== secret) {
+  if (!verifyAdminPassword(password)) {
     return NextResponse.json({ ok: false, error: "รหัสผ่านไม่ถูกต้อง" }, { status: 401 });
   }
 
+  // Store a signed session token — never the password itself.
+  const token = await createSessionToken();
   const res = NextResponse.json({ ok: true });
-  res.cookies.set("admin_auth", secret, {
+  res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 days
+    maxAge: SESSION_MAX_AGE,
     path: "/",
   });
   return res;
@@ -21,6 +31,6 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE() {
   const res = NextResponse.json({ ok: true });
-  res.cookies.delete("admin_auth");
+  res.cookies.delete(SESSION_COOKIE);
   return res;
 }

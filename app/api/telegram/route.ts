@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { getMemberByPhone, recordVisit, type MemberView, type PackageView } from "@/app/actions/members";
+import { prisma } from "@/app/lib/prisma";
+import {
+  getMemberByPhone, recordVisit, type MemberView, type PackageView,
+} from "@/app/lib/members-core";
 import {
   sendMessageWithKeyboard, editMessageText, answerCallbackQuery, type TgButton,
 } from "@/app/lib/telegram-notify";
@@ -11,14 +12,8 @@ import { normalizePhone, isValidPhone } from "@/app/lib/phone";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function getPrisma() {
-  const adapter = new PrismaPg(process.env.PRISMA_DATABASE_URL!);
-  return new PrismaClient({ adapter });
-}
-
 /** Read bot token, owner chat id, and webhook secret from the Setting table. */
 async function getBotConfig(): Promise<{ token: string; chatId: string; secret: string } | null> {
-  const prisma = getPrisma();
   try {
     const rows = await prisma.setting.findMany({
       where: { key: { in: ["telegramToken", "telegramChatId", "telegramWebhookSecret"] } },

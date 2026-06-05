@@ -1,18 +1,13 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { revalidatePath } from "next/cache";
-
-function getPrisma() {
-  const adapter = new PrismaPg(process.env.PRISMA_DATABASE_URL!);
-  return new PrismaClient({ adapter });
-}
+import { prisma } from "@/app/lib/prisma";
+import { assertAdmin } from "@/app/lib/auth";
+import { readTelegramConfig } from "@/app/lib/telegram-config";
 
 const DEFAULT_MAX_BOARDS = 8;
 
 export async function getMaxBoards(): Promise<number> {
-  const prisma = getPrisma();
   try {
     const s = await prisma.setting.findUnique({ where: { key: "maxBoards" } });
     const n = s ? parseInt(s.value, 10) : DEFAULT_MAX_BOARDS;
@@ -23,8 +18,8 @@ export async function getMaxBoards(): Promise<number> {
 }
 
 export async function setMaxBoards(value: number): Promise<{ ok: boolean }> {
+  await assertAdmin();
   if (value < 1 || value > 50) return { ok: false };
-  const prisma = getPrisma();
   try {
     await prisma.setting.upsert({
       where:  { key: "maxBoards" },
@@ -53,7 +48,6 @@ export interface ClosedSlot {
 }
 
 export async function getClosedSlots(): Promise<ClosedSlot[]> {
-  const prisma = getPrisma();
   try {
     const s = await prisma.setting.findUnique({ where: { key: "closedSlots" } });
     if (!s) return [];
@@ -66,7 +60,7 @@ export async function getClosedSlots(): Promise<ClosedSlot[]> {
 export async function addClosedSlot(
   slot: Omit<ClosedSlot, "id">,
 ): Promise<{ ok: boolean }> {
-  const prisma = getPrisma();
+  await assertAdmin();
   try {
     const current = await getClosedSlots();
     const newSlot: ClosedSlot = {
@@ -89,7 +83,7 @@ export async function addClosedSlot(
 }
 
 export async function removeClosedSlot(id: string): Promise<{ ok: boolean }> {
-  const prisma = getPrisma();
+  await assertAdmin();
   try {
     const current = await getClosedSlots();
     const updated = current.filter((s) => s.id !== id);
@@ -108,31 +102,18 @@ export async function removeClosedSlot(id: string): Promise<{ ok: boolean }> {
 }
 
 // ─── Telegram config ──────────────────────────────────────────────────────────
-
-export async function getTelegramConfig(): Promise<{ token: string; chatId: string } | null> {
-  const prisma = getPrisma();
-  try {
-    const [tokenRow, chatIdRow] = await Promise.all([
-      prisma.setting.findUnique({ where: { key: "telegramToken" } }),
-      prisma.setting.findUnique({ where: { key: "telegramChatId" } }),
-    ]);
-    const token  = tokenRow?.value?.trim()  ?? "";
-    const chatId = chatIdRow?.value?.trim() ?? "";
-    if (!token || !chatId) return null;
-    return { token, chatId };
-  } catch {
-    return null;
-  }
-}
+// Reading the bot token is handled by `readTelegramConfig` in
+// `@/app/lib/telegram-config` (a plain module, NOT a callable server action) so
+// the secret is never exposed as an endpoint.
 
 export async function setTelegramConfig(
   token: string,
   chatId: string,
 ): Promise<{ ok: boolean }> {
+  await assertAdmin();
   const t = token.trim();
   const c = chatId.trim();
   if (!t || !c) return { ok: false };
-  const prisma = getPrisma();
   try {
     await Promise.all([
       prisma.setting.upsert({
@@ -155,7 +136,8 @@ export async function setTelegramConfig(
 }
 
 export async function testTelegramConfig(): Promise<{ ok: boolean; error?: string }> {
-  const config = await getTelegramConfig();
+  await assertAdmin();
+  const config = await readTelegramConfig();
   if (!config) return { ok: false, error: "ยังไม่ได้ตั้งค่า Bot Token หรือ Chat ID" };
   try {
     const res = await fetch(
@@ -184,7 +166,7 @@ export async function testTelegramConfig(): Promise<{ ok: boolean; error?: strin
 
 const DEFAULT_SITE_URL = "https://supspacemaeklong.com";
 
-async function ensureWebhookSecret(prisma: ReturnType<typeof getPrisma>): Promise<string> {
+async function ensureWebhookSecret(): Promise<string> {
   const row = await prisma.setting.findUnique({ where: { key: "telegramWebhookSecret" } });
   if (row?.value) return row.value;
   const { randomBytes } = await import("crypto");
@@ -199,11 +181,11 @@ async function ensureWebhookSecret(prisma: ReturnType<typeof getPrisma>): Promis
 
 /** Register the inbound webhook with Telegram (url + secret_token). */
 export async function setTelegramWebhook(baseUrl?: string): Promise<{ ok: boolean; url?: string; error?: string }> {
-  const config = await getTelegramConfig();
+  await assertAdmin();
+  const config = await readTelegramConfig();
   if (!config) return { ok: false, error: "ตั้งค่า Bot Token และ Chat ID ก่อน" };
-  const prisma = getPrisma();
   try {
-    const secret = await ensureWebhookSecret(prisma);
+    const secret = await ensureWebhookSecret();
     const base = (baseUrl?.trim() || DEFAULT_SITE_URL).replace(/\/+$/, "");
     const url = `${base}/api/telegram`;
     const res = await fetch(`https://api.telegram.org/bot${config.token}/setWebhook`, {
@@ -233,7 +215,8 @@ export async function setTelegramWebhook(baseUrl?: string): Promise<{ ok: boolea
 export async function getTelegramWebhookInfo(): Promise<{
   ok: boolean; url?: string; pending?: number; lastError?: string; error?: string;
 }> {
-  const config = await getTelegramConfig();
+  await assertAdmin();
+  const config = await readTelegramConfig();
   if (!config) return { ok: false, error: "ยังไม่ได้ตั้งค่า Bot" };
   try {
     const res = await fetch(`https://api.telegram.org/bot${config.token}/getWebhookInfo`);
@@ -253,7 +236,8 @@ export async function getTelegramWebhookInfo(): Promise<{
 }
 
 export async function deleteTelegramWebhook(): Promise<{ ok: boolean; error?: string }> {
-  const config = await getTelegramConfig();
+  await assertAdmin();
+  const config = await readTelegramConfig();
   if (!config) return { ok: false, error: "ยังไม่ได้ตั้งค่า Bot" };
   try {
     const res = await fetch(`https://api.telegram.org/bot${config.token}/deleteWebhook`, { method: "POST" });

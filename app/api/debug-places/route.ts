@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import { isAdminRequest } from "@/app/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // Debug endpoint — exposes env/config status, so gate behind admin auth.
+  if (!(await isAdminRequest())) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   const placeId = process.env.GOOGLE_PLACE_ID;
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
 
