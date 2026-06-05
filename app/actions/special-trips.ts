@@ -1,13 +1,8 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { revalidatePath } from "next/cache";
-
-function getPrisma() {
-  const adapter = new PrismaPg(process.env.PRISMA_DATABASE_URL!);
-  return new PrismaClient({ adapter });
-}
+import { prisma } from "@/app/lib/prisma";
+import { assertAdmin } from "@/app/lib/auth";
 
 const THAI_DAYS_SHORT   = ["อา", "จ.", "อ.", "พ.", "พฤ", "ศ.", "ส."];
 const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
@@ -46,10 +41,10 @@ export interface SpecialTripRecord {
 export async function createSpecialTrip(
   payload: SpecialTripPayload,
 ): Promise<{ ok: boolean; id?: string }> {
+  await assertAdmin();
   if (!payload.name.trim() || !payload.dateIso || !payload.timeSlot || !payload.location.trim()) {
     return { ok: false };
   }
-  const prisma = getPrisma();
   try {
     const trip = await (prisma as any).specialTrip.create({
       data: {
@@ -75,7 +70,7 @@ export async function createSpecialTrip(
 }
 
 export async function getSpecialTrips(): Promise<SpecialTripRecord[]> {
-  const prisma = getPrisma();
+  await assertAdmin();
   try {
     const rows = await (prisma as any).specialTrip.findMany({
       orderBy: { createdAt: "desc" },
@@ -88,7 +83,6 @@ export async function getSpecialTrips(): Promise<SpecialTripRecord[]> {
 }
 
 export async function getActiveSpecialTrips(): Promise<SpecialTripRecord[]> {
-  const prisma = getPrisma();
   const todayIso = new Date().toISOString().slice(0, 10);
   try {
     const rows = await (prisma as any).specialTrip.findMany({
@@ -106,7 +100,7 @@ export async function getActiveSpecialTrips(): Promise<SpecialTripRecord[]> {
 }
 
 export async function cancelSpecialTrip(id: string): Promise<{ ok: boolean }> {
-  const prisma = getPrisma();
+  await assertAdmin();
   try {
     await (prisma as any).specialTrip.update({
       where:  { id },

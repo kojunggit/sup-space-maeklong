@@ -1,11 +1,11 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { revalidatePath } from "next/cache";
+import { prisma } from "@/app/lib/prisma";
+import { assertAdmin } from "@/app/lib/auth";
 import { ROUTES_BY_ID, isHourClosed, type ClosedSlotShape } from "@/app/_components/trips-data";
 import { sendTelegramNotification, buildBookingMessage } from "@/app/lib/telegram-notify";
-import { getTelegramConfig } from "@/app/actions/settings";
+import { readTelegramConfig } from "@/app/lib/telegram-config";
 import { getActiveSpecialTrips } from "@/app/actions/special-trips";
 import type { UpcomingTrip } from "@/app/_components/trips-data";
 
@@ -13,12 +13,6 @@ import type { UpcomingTrip } from "@/app/_components/trips-data";
 function parseHour(slot: string): number | null {
   const n = parseInt(slot.split(":")[0], 10);
   return isNaN(n) ? null : n;
-}
-
-// PrismaPg in Prisma 7 accepts a connection string directly (string | Pool | PoolConfig)
-function getPrisma() {
-  const adapter = new PrismaPg(process.env.PRISMA_DATABASE_URL!);
-  return new PrismaClient({ adapter });
 }
 
 // ─── Booking creation ─────────────────────────────────────────────────────────
@@ -49,7 +43,6 @@ export interface BookingResult {
 }
 
 export async function createBooking(payload: BookingPayload): Promise<BookingResult> {
-  const prisma = getPrisma();
   try {
     // ── Guard 1: no duplicate (same phone + date + time, not cancelled) ─────
     if (payload.guestPhone && payload.dateIso) {
@@ -135,7 +128,7 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
         status:          "PENDING",
       },
     });
-    const tgConfig = await getTelegramConfig();
+    const tgConfig = await readTelegramConfig();
     if (tgConfig) {
       void sendTelegramNotification(buildBookingMessage(booking), tgConfig.token, tgConfig.chatId);
     }
@@ -175,7 +168,7 @@ export async function getBookings(
   status?: string,
   dateRange?: "upcoming" | "past",
 ): Promise<BookingRecord[]> {
-  const prisma = getPrisma();
+  await assertAdmin();
   const todayIso = new Date().toISOString().slice(0, 10);
   try {
     const statusFilter = status && status !== "ALL" ? { status } : {};
@@ -209,7 +202,6 @@ const THAI_DAYS_SHORT = ["อา", "จ.", "อ.", "พ.", "พฤ", "ศ.", "�
 const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
 export async function getUpcomingTrips(): Promise<UpcomingTrip[]> {
-  const prisma = getPrisma();
   const todayIso = new Date().toISOString().slice(0, 10);
   try {
     // Read capacity setting (default 8)
@@ -299,7 +291,7 @@ export async function updateBookingStatus(
   id: string,
   status: "PENDING" | "CONFIRMED" | "CANCELLED",
 ): Promise<{ ok: boolean }> {
-  const prisma = getPrisma();
+  await assertAdmin();
   try {
     await prisma.booking.update({ where: { id }, data: { status } });
     revalidatePath("/admin");
