@@ -116,9 +116,15 @@ nano .env
 ```env
 PRISMA_DATABASE_URL="postgresql://sup_user:STRONG_PASSWORD@localhost:5432/sup_space"
 ADMIN_PASSWORD="รหัสผ่านหน้าadminที่เดายาก"
+# คีย์ลับเซ็น session token ของหน้า /admin — สร้างด้วย: openssl rand -hex 32
+SESSION_SECRET="ค่าสุ่มยาวๆจาก openssl rand -hex 32"
 GOOGLE_PLACES_API_KEY="..."
 GOOGLE_PLACE_ID="..."
 ```
+
+> หมายเหตุ: ถ้าไม่ตั้ง `SESSION_SECRET` ระบบจะ fallback ไปใช้ `ADMIN_PASSWORD`
+> เซ็น token แทน — ยังใช้งานได้แต่แนะนำให้ตั้งแยกเป็นค่าสุ่ม สคริปต์
+> `setup-vps.sh`/`update.sh` จะสร้างให้อัตโนมัติถ้ายังไม่มี
 
 ---
 

@@ -20,6 +20,10 @@ sudo -u "${DEPLOY_USER}" bash -lc "
   git fetch origin &&
   git checkout '${BRANCH}' &&
   git reset --hard 'origin/${BRANCH}' &&
+  if [ -f .env ] && ! grep -q '^SESSION_SECRET=' .env; then
+    echo \"SESSION_SECRET=\\\"\$(openssl rand -hex 32)\\\"\" >> .env;
+    echo '▶ เพิ่ม SESSION_SECRET ลง .env (ของใหม่จากแพตช์ security)';
+  fi &&
   npm ci &&
   npm run build &&
   pm2 restart sup-space
