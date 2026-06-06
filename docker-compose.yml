@@ -1,0 +1,57 @@
+# SUP Space Maeklong — Docker stack สำหรับ VPS ที่มี Traefik (network_mode: host)
+# อยู่ร่วมกับเว็บอื่น ๆ บน VPS เดียวได้ — Traefik route เข้ามาตาม labels ด้านล่าง
+#
+# ใช้งาน:
+#   cp .env.docker.example .env   # แล้วใส่ค่าจริง
+#   docker compose up -d --build
+#
+# หมายเหตุ host-mode Traefik: ดูส่วน Troubleshooting ใน DEPLOY.md ถ้าเจอ 502
+
+services:
+  app:
+    build: .
+    image: sup-space-maeklong
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      # ต่อ Postgres container ด้านล่างผ่าน service name "db" ในเน็ตเวิร์กเดียวกัน
+      PRISMA_DATABASE_URL: "postgresql://sup_user:${DB_PASSWORD}@db:5432/sup_space"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - supspace
+    labels:
+      - "traefik.enable=true"
+      # ระบุเน็ตเวิร์กที่ Traefik จะใช้คุยกับ container นี้ (สำคัญตอน Traefik เป็น host-mode)
+      - "traefik.docker.network=supspace"
+      - "traefik.http.routers.supspace.rule=Host(`supspacemaeklong.com`) || Host(`www.supspacemaeklong.com`)"
+      - "traefik.http.routers.supspace.entrypoints=websecure"
+      - "traefik.http.routers.supspace.tls=true"
+      - "traefik.http.routers.supspace.tls.certresolver=letsencrypt"
+      - "traefik.http.services.supspace.loadbalancer.server.port=3000"
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sup_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: sup_space
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - supspace
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sup_user -d sup_space"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
+
+networks:
+  supspace:
+    name: supspace
