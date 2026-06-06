@@ -95,9 +95,12 @@ fi
 
 # ─── 5. เขียนไฟล์ .env ────────────────────────────────────────────────────────
 echo "── [5/8] เขียน .env ──"
+# สุ่ม secret สำหรับเซ็น session token ของหน้า /admin (ไม่เก็บรหัสผ่านดิบใน cookie)
+SESSION_SECRET="$(openssl rand -hex 32)"
 cat > "${APP_DIR}/.env" <<ENVEOF
 PRISMA_DATABASE_URL="${DB_URL}"
 ADMIN_PASSWORD="${ADMIN_PASS}"
+SESSION_SECRET="${SESSION_SECRET}"
 GOOGLE_PLACES_API_KEY="${GMAPS_KEY}"
 GOOGLE_PLACE_ID="${GPLACE_ID}"
 ENVEOF
