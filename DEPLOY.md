@@ -6,9 +6,88 @@ Deploy เว็บ SUP Space Maeklong (Next.js 15 + PostgreSQL) ขึ้น VP
 > ทดสอบกับ Ubuntu 22.04 / 24.04 (Debian ใช้คำสั่งคล้ายกัน)
 > ขอสิทธิ์ `sudo` บน VPS และมีโดเมนชี้ A record มาที่ IP ของ VPS แล้ว
 
+> **มี 2 วิธี deploy:**
+> - **A) Docker + Traefik** — ถ้า VPS มี Traefik คุม routing/SSL อยู่แล้ว (โฮสต์หลายเว็บ) → ดูหัวข้อ 🐳 ด้านล่าง
+> - **B) Native (PM2 + Nginx)** — ถ้า VPS ตัวนี้ใช้รันเว็บนี้อย่างเดียว → ดูหัวข้อ ⚡/manual
+>
+> ⚠️ **อย่าใช้ทั้งสองวิธีบนเครื่องเดียวกัน** — `setup-vps.sh` (native) จะติดตั้ง Nginx + certbot
+> ที่แย่ง port 80/443 กับ Traefik
+
 ---
 
-## ⚡ ติดตั้งแบบอัตโนมัติ (คำสั่งเดียวจบ)
+## 🐳 A) Deploy แบบ Docker + Traefik
+
+เหมาะกับ VPS ที่มี **Traefik** เป็น reverse proxy อยู่แล้ว (เช่น Hostinger ที่รันหลายเว็บ)
+ไฟล์ที่เกี่ยวข้อง: `Dockerfile`, `docker-compose.yml`, `docker-entrypoint.sh`, `.env.docker.example`
+
+```bash
+# บน VPS
+git clone https://github.com/kojunggit/sup-space-maeklong.git
+cd sup-space-maeklong
+
+# ตั้งค่า env
+cp .env.docker.example .env
+nano .env          # ใส่ DB_PASSWORD, ADMIN_PASSWORD, SESSION_SECRET, Google keys
+                   # SESSION_SECRET สร้างด้วย: openssl rand -hex 32
+
+# build + run (จะสร้าง Postgres container + แอปให้)
+docker compose up -d --build
+```
+
+**สิ่งที่เกิดขึ้น:**
+- สร้าง Postgres container (ข้อมูลเก็บใน volume `pgdata`)
+- entrypoint รัน `prisma db push` sync schema ตอน start แล้วรัน `next start` (port 3000 ภายใน)
+- แอป **ไม่ publish port** ออก host — Traefik route เข้ามาตาม labels ใน `docker-compose.yml`
+
+**สิ่งที่ต้องตรงกับ Traefik ของคุณ** (แก้ใน `docker-compose.yml` ถ้าต่าง):
+- `traefik.http.routers.supspace.entrypoints=websecure` — ชื่อ entrypoint ของ HTTPS
+- `traefik.http.routers.supspace.tls.certresolver=letsencrypt` — ชื่อ certresolver
+- `Host(...)` rule — โดเมนจริง
+
+### Traefik แบบ `network_mode: host` — สำคัญ
+สแต็กนี้สร้าง docker network ชื่อ `supspace` และตั้ง label `traefik.docker.network=supspace`
+ให้แล้ว เพราะ Traefik แบบ host จะคุยกับ container ผ่าน IP บน bridge นี้ (host route ถึงได้)
+
+ต้องมั่นใจว่า Traefik:
+1. เปิด **docker provider** + เข้าถึง `/var/run/docker.sock` ได้
+2. มี entrypoint `websecure` (:443) + certresolver `letsencrypt` ตามที่ config ไว้
+
+**ถ้าเปิดเว็บแล้วได้ 502 Bad Gateway** (Traefik host หา container ไม่เจอ) — ใช้ fallback แบบ
+file-provider แทน labels:
+
+```bash
+# 1) ให้แอป publish เฉพาะ localhost — แก้ docker-compose.yml ใส่ใต้ service app:
+#      ports: ["127.0.0.1:3000:3000"]
+#    แล้วลบ labels ออก (หรือปล่อยไว้ก็ได้)
+# 2) เพิ่ม dynamic config ให้ Traefik (ในโฟลเดอร์ที่ Traefik watch อยู่):
+```
+```yaml
+# /etc/traefik/dynamic/supspace.yml
+http:
+  routers:
+    supspace:
+      rule: "Host(`supspacemaeklong.com`) || Host(`www.supspacemaeklong.com`)"
+      entryPoints: ["websecure"]
+      service: supspace
+      tls: { certResolver: letsencrypt }
+  services:
+    supspace:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:3000"
+```
+
+### อัปเดต / ดูแล (Docker)
+```bash
+git pull origin main
+docker compose up -d --build        # build ใหม่ + restart
+docker compose logs -f app          # ดู log
+docker compose exec db pg_dump -U sup_user sup_space > backup_$(date +%F).sql   # backup
+```
+
+---
+
+## ⚡ B) ติดตั้ง native แบบอัตโนมัติ (คำสั่งเดียวจบ)
 
 ถ้าไม่อยากทำทีละขั้น ใช้สคริปต์อัตโนมัติได้เลย — มันจะติดตั้งทุกอย่าง
 (Node, Postgres, Nginx, PM2, สร้าง DB, build, รันแอป, ตั้ง SSL) และ

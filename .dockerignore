@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.github
+.env
+.env.*
+!.env.docker.example
+*.sql
+backup_*.sql
+npm-debug.log*
+.DS_Store
+README.md
+DEPLOY.md
+deploy
+ecosystem.config.js
