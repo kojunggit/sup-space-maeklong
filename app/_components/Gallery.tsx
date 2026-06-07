@@ -4,31 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useLang } from "./lang-context";
 import { T } from "./translations";
-
-// เพิ่มรูปได้เรื่อย ๆ แค่เพิ่มรายการในนี้ — ตั้ง big: true เพื่อให้รูปนั้นกินพื้นที่ใหญ่ขึ้น
-const SHOTS = [
-  { src: "/images/KOSI2067.jpg", cap: "อุโมงป่าจาก",   big: true  },
-  { src: "/images/KOSI4747.jpg", cap: "วัดบางน้อย"                },
-  { src: "/images/KOSI4714.jpg", cap: "น้ำใส"                     },
-  { src: "/images/KOSI6162.jpg", cap: "กลุ่มเพื่อน"               },
-  { src: "/images/KOSI6383.jpg", cap: "ผจญภัยริมคลอง", big: true  },
-  { src: "/images/KOSI6260.jpg", cap: "พายยามเช้า"               },
-  { src: "/images/KOSI4884.jpg", cap: "สายน้ำยามบ่าย", big: true  },
-  { src: "/images/KOSI1064.jpg", cap: "ริมคลองแม่กลอง"           },
-  { src: "/images/KOSI3797.jpg", cap: "วิถีชุมชน"                 },
-  { src: "/images/KOSI4709.jpg", cap: "พายเป็นหมู่คณะ"           },
-  { src: "/images/KOSI3997.jpg", cap: "สวนมะพร้าวริมน้ำ"         },
-  { src: "/images/KOSI4923.jpg", cap: "ช่วงเวลาสงบ",   big: true  },
-  { src: "/images/KOSI4808.jpg", cap: "ออกผจญภัย"                 },
-  { src: "/images/KOSI5933.jpg", cap: "ธรรมชาติสองฝั่ง"          },
-  { src: "/images/KOSI5971.jpg", cap: "แสงเช้าริมคลอง"           },
-  { src: "/images/KOSI6689.jpg", cap: "ความทรงจำบนน้ำ"           },
-];
+import type { GalleryPhoto } from "@/app/actions/gallery";
 
 function Cell({
-  src, cap, big, onClick,
+  src, caption, big, onClick,
 }: {
-  src: string; cap: string; big?: boolean; onClick: () => void;
+  src: string; caption: string; big?: boolean; onClick: () => void;
 }) {
   const [hover, setHover] = useState(false);
   return (
@@ -47,7 +28,7 @@ function Cell({
     >
       <Image
         src={src}
-        alt={cap}
+        alt={caption}
         fill
         sizes={big
           ? "(max-width: 760px) 100vw, 50vw"
@@ -70,7 +51,7 @@ function Cell({
           opacity: hover ? 1 : 0.85,
           transition: "all 240ms var(--ease-out)",
         }}
-      >{cap}</div>
+      >{caption}</div>
     </div>
   );
 }
@@ -78,13 +59,12 @@ function Cell({
 function Lightbox({
   shots, index, onClose, onPrev, onNext,
 }: {
-  shots: typeof SHOTS;
+  shots: GalleryPhoto[];
   index: number;
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
 }) {
-  // lock body scroll while open
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
@@ -113,7 +93,6 @@ function Lightbox({
         display: "flex", alignItems: "center", justifyContent: "center",
       }}
     >
-      {/* image */}
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -126,7 +105,7 @@ function Lightbox({
       >
         <Image
           src={shot.src}
-          alt={shot.cap}
+          alt={shot.caption}
           fill
           priority
           sizes="(max-width: 760px) 90vw, 1100px"
@@ -139,11 +118,10 @@ function Lightbox({
           color: "#fff", fontFamily: "var(--font-kanit)", fontWeight: 500, fontSize: 22,
           textShadow: "0 2px 8px rgba(0,0,0,0.8)",
         }}>
-          {shot.cap}
+          {shot.caption}
         </div>
       </div>
 
-      {/* prev */}
       <button
         onClick={(e) => { e.stopPropagation(); onPrev(); }}
         disabled={!hasPrev}
@@ -157,7 +135,6 @@ function Lightbox({
         }}
       >‹</button>
 
-      {/* next */}
       <button
         onClick={(e) => { e.stopPropagation(); onNext(); }}
         disabled={!hasNext}
@@ -171,7 +148,6 @@ function Lightbox({
         }}
       >›</button>
 
-      {/* close */}
       <button
         onClick={onClose}
         style={{
@@ -183,7 +159,6 @@ function Lightbox({
         }}
       >✕</button>
 
-      {/* counter */}
       <div style={{
         position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
         color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-kanit)", fontSize: 14,
@@ -195,14 +170,14 @@ function Lightbox({
   );
 }
 
-export default function Gallery() {
+export default function Gallery({ shots }: { shots: GalleryPhoto[] }) {
   const { lang } = useLang();
   const t = T[lang].gallery;
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const close = useCallback(() => setLightboxIdx(null), []);
   const prev  = useCallback(() => setLightboxIdx(i => (i !== null && i > 0) ? i - 1 : i), []);
-  const next  = useCallback(() => setLightboxIdx(i => (i !== null && i < SHOTS.length - 1) ? i + 1 : i), []);
+  const next  = useCallback(() => setLightboxIdx(i => (i !== null && i < shots.length - 1) ? i + 1 : i), [shots.length]);
 
   return (
     <section id="gallery" style={{ background: "var(--bg-page)" }} className="section-pad">
@@ -226,15 +201,15 @@ export default function Gallery() {
           }}
           className="gallery-grid"
         >
-          {SHOTS.map((s, i) => (
-            <Cell key={s.src} {...s} onClick={() => setLightboxIdx(i)} />
+          {shots.map((s, i) => (
+            <Cell key={s.id} src={s.src} caption={s.caption} big={s.big} onClick={() => setLightboxIdx(i)} />
           ))}
         </div>
       </div>
 
       {lightboxIdx !== null && (
         <Lightbox
-          shots={SHOTS}
+          shots={shots}
           index={lightboxIdx}
           onClose={close}
           onPrev={prev}

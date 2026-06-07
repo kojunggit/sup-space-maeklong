@@ -8,6 +8,7 @@ const MENU = [
   { href: "/admin/bookings",       label: "การจอง",       icon: "📋" },
   { href: "/admin/special-trips",  label: "ทริปพิเศษ",    icon: "✨" },
   { href: "/admin/members",        label: "สมาชิก",       icon: "👥" },
+  { href: "/admin/gallery",        label: "แกลเลอรี",     icon: "🖼️" },
   { href: "/admin/settings",       label: "ตั้งค่า",       icon: "⚙️" },
 ];
 

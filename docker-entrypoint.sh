@@ -3,6 +3,9 @@
 # (ทำตอน start ไม่ใช่ตอน build เพราะตอน build image ยังต่อ DB ไม่ได้)
 set -e
 
+echo "▶ ensuring uploads directory..."
+mkdir -p public/uploads
+
 echo "▶ prisma db push (sync schema)..."
 npx prisma db push
 

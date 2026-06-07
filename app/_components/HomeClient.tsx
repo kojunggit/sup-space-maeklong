@@ -13,10 +13,12 @@ import Reviews from "./Reviews";
 import Footer from "./Footer";
 import { type UpcomingTrip } from "./trips-data";
 import type { PlaceData } from "@/app/lib/google-places";
+import type { GalleryPhoto } from "@/app/actions/gallery";
 
 interface HomeClientProps {
   initialTrips: UpcomingTrip[];
   placeData: PlaceData;
+  initialGallery: GalleryPhoto[];
 }
 
 function scrollToId(id: string, block: "start" | "center" = "start") {
@@ -30,7 +32,7 @@ function scrollToId(id: string, block: "start" | "center" = "start") {
   window.scrollTo({ top: Math.max(0, offset), behavior: "smooth" });
 }
 
-export default function HomeClient({ initialTrips, placeData }: HomeClientProps) {
+export default function HomeClient({ initialTrips, placeData, initialGallery }: HomeClientProps) {
   const [joinTrip, setJoinTrip] = useState<UpcomingTrip | null>(null);
 
   const onBookClick = useCallback(() => scrollToId("book", "center"), []);
@@ -68,7 +70,7 @@ export default function HomeClient({ initialTrips, placeData }: HomeClientProps)
         <img src="/wave-divider.svg" alt="" style={{ width: "60%", maxWidth: 700, height: 60 }} />
       </div>
       <About rating={placeData.rating} reviewCount={placeData.reviewCount} />
-      <Gallery />
+      <Gallery shots={initialGallery} />
       <Reviews reviews={placeData.fiveStarReviews} rating={placeData.rating} reviewCount={placeData.reviewCount} />
       <Footer />
     </div>
