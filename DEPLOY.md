@@ -30,6 +30,9 @@ cp .env.docker.example .env
 nano .env          # ใส่ DB_PASSWORD, ADMIN_PASSWORD, SESSION_SECRET, Google keys
                    # SESSION_SECRET สร้างด้วย: openssl rand -hex 32
 
+# สร้าง shared network ก่อน (ต้องทำครั้งเดียวต่อ VPS)
+docker network create supspace
+
 # build + run (จะสร้าง Postgres container + แอปให้)
 docker compose up -d --build
 ```
@@ -45,8 +48,9 @@ docker compose up -d --build
 - `Host(...)` rule — โดเมนจริง
 
 ### Traefik แบบ `network_mode: host` — สำคัญ
-สแต็กนี้สร้าง docker network ชื่อ `supspace` และตั้ง label `traefik.docker.network=supspace`
+สแต็กนี้ใช้ docker network ชื่อ `supspace` (external) และตั้ง label `traefik.docker.network=supspace`
 ให้แล้ว เพราะ Traefik แบบ host จะคุยกับ container ผ่าน IP บน bridge นี้ (host route ถึงได้)
+network นี้ต้องสร้างก่อนด้วย `docker network create supspace` (ดูขั้นตอน deploy ด้านบน)
 
 ต้องมั่นใจว่า Traefik:
 1. เปิด **docker provider** + เข้าถึง `/var/run/docker.sock` ได้

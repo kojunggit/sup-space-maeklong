@@ -4,7 +4,7 @@
 set -e
 
 echo "▶ prisma db push (sync schema)..."
-npx prisma db push
+npx prisma db push --skip-generate
 
 echo "▶ starting Next.js..."
 exec "$@"
