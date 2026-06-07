@@ -119,6 +119,7 @@ model GalleryPhoto {
   id        String   @id @default(cuid())
   src       String   // "/images/KOSI2067.jpg" or "/uploads/<uuid>.jpg"
   caption   String
+  category  String?  // "nature" | "market" | "friends" | "pets" | "spots" | null
   big       Boolean  @default(false)
   order     Int      @default(0)
   createdAt DateTime @default(now())

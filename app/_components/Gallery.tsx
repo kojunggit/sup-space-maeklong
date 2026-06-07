@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useLang } from "./lang-context";
 import { T } from "./translations";
 import type { GalleryPhoto } from "@/app/actions/gallery";
@@ -188,21 +189,23 @@ export default function Gallery({ shots }: { shots: GalleryPhoto[] }) {
             <h2 className="section-title">{t.title.pre}<span className="accent">{t.title.accent}</span>{t.title.post}</h2>
             <p className="section-sub">{t.sub}</p>
           </div>
-          <a href="#book" className="btn btn-secondary">{t.cta}</a>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Link href="/gallery" className="btn btn-primary">ภาพประทับใจ →</Link>
+            <a href="#book" className="btn btn-secondary">{t.cta}</a>
+          </div>
         </div>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4,1fr)",
-            gridAutoRows: "220px",
-            gridAutoFlow: "dense",
-            gap: 14,
+            gridTemplateColumns: "repeat(5,1fr)",
+            gridAutoRows: "160px",
+            gap: 10,
           }}
           className="gallery-grid"
         >
           {shots.map((s, i) => (
-            <Cell key={s.id} src={s.src} caption={s.caption} big={s.big} onClick={() => setLightboxIdx(i)} />
+            <Cell key={s.id} src={s.src} caption={s.caption} big={false} onClick={() => setLightboxIdx(i)} />
           ))}
         </div>
       </div>

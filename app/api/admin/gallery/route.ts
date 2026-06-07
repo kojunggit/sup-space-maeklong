@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { prisma } from "@/app/lib/prisma";
 import { assertAdmin } from "@/app/lib/auth";
+import { VALID_CATEGORY_IDS } from "@/app/lib/gallery-constants";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -23,6 +24,8 @@ export async function POST(req: NextRequest) {
   const file = formData.get("file") as File | null;
   const caption = ((formData.get("caption") as string | null) ?? "").trim();
   const big = formData.get("big") === "true";
+  const categoryRaw = formData.get("category") as string | null;
+  const category = categoryRaw && VALID_CATEGORY_IDS.has(categoryRaw) ? categoryRaw : null;
 
   if (!file) return NextResponse.json({ error: "ไม่พบไฟล์" }, { status: 400 });
   if (!ALLOWED_TYPES.includes(file.type)) {
@@ -43,7 +46,7 @@ export async function POST(req: NextRequest) {
   const order = (agg._max.order ?? -1) + 1;
 
   const photo = await prisma.galleryPhoto.create({
-    data: { src: `/uploads/${filename}`, caption: caption || filename, big, order },
+    data: { src: `/uploads/${filename}`, caption: caption || filename, big, category, order },
   });
 
   return NextResponse.json({ ok: true, photo });

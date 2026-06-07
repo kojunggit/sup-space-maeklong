@@ -4,6 +4,7 @@ import { join } from "path";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/app/lib/prisma";
 import { assertAdmin } from "@/app/lib/auth";
+import { VALID_CATEGORY_IDS } from "@/app/lib/gallery-constants";
 
 export async function DELETE(
   _req: NextRequest,
@@ -25,6 +26,7 @@ export async function DELETE(
 
   await prisma.galleryPhoto.delete({ where: { id } });
   revalidatePath("/");
+  revalidatePath("/gallery");
   revalidatePath("/admin/gallery");
 
   return NextResponse.json({ ok: true });
@@ -41,9 +43,21 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = (await req.json()) as { caption?: string; big?: boolean };
-  await prisma.galleryPhoto.update({ where: { id }, data: body });
+  const body = (await req.json()) as { caption?: string; big?: boolean; category?: string | null };
+
+  const updateData: { caption?: string; big?: boolean; category?: string | null } = {};
+  if (body.caption !== undefined) updateData.caption = body.caption;
+  if (body.big !== undefined) updateData.big = body.big;
+  if (body.category !== undefined) {
+    if (body.category !== null && !VALID_CATEGORY_IDS.has(body.category)) {
+      return NextResponse.json({ error: "Invalid category" }, { status: 400 });
+    }
+    updateData.category = body.category;
+  }
+
+  await prisma.galleryPhoto.update({ where: { id }, data: updateData });
   revalidatePath("/");
+  revalidatePath("/gallery");
   revalidatePath("/admin/gallery");
 
   return NextResponse.json({ ok: true });

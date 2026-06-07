@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { GalleryPhoto } from "@/app/actions/gallery";
+import { GALLERY_CATEGORIES } from "@/app/lib/gallery-constants";
 import {
   updateGalleryPhoto,
   moveGalleryPhoto,
@@ -18,10 +19,11 @@ export default function GalleryManager({ initialPhotos }: { initialPhotos: Galle
   const [file, setFile] = useState<File | null>(null);
   const [caption, setCaption] = useState("");
   const [big, setBig] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
-  // Inline edit state: map of id → editing caption string
+  // Inline edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editCaption, setEditCaption] = useState("");
 
@@ -34,6 +36,7 @@ export default function GalleryManager({ initialPhotos }: { initialPhotos: Galle
     fd.append("file", file);
     fd.append("caption", caption);
     fd.append("big", String(big));
+    fd.append("category", uploadCategory);
     try {
       const res = await fetch("/api/admin/gallery", { method: "POST", body: fd });
       const data = await res.json() as { error?: string };
@@ -41,6 +44,7 @@ export default function GalleryManager({ initialPhotos }: { initialPhotos: Galle
       setFile(null);
       setCaption("");
       setBig(false);
+      setUploadCategory("");
       router.refresh();
     } catch {
       setUploadError("เกิดข้อผิดพลาด กรุณาลองใหม่");
@@ -65,6 +69,13 @@ export default function GalleryManager({ initialPhotos }: { initialPhotos: Galle
   function toggleBig(p: GalleryPhoto) {
     startTransition(async () => {
       await updateGalleryPhoto(p.id, { big: !p.big });
+      router.refresh();
+    });
+  }
+
+  function changeCategory(id: string, cat: string) {
+    startTransition(async () => {
+      await updateGalleryPhoto(id, { category: cat || null });
       router.refresh();
     });
   }
@@ -115,6 +126,19 @@ export default function GalleryManager({ initialPhotos }: { initialPhotos: Galle
               style={inputStyle}
             />
           </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={labelStyle}>กลุ่มภาพ</label>
+            <select
+              value={uploadCategory}
+              onChange={(e) => setUploadCategory(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="">— ไม่ระบุ —</option>
+              {GALLERY_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>{c.icon} {c.label}</option>
+              ))}
+            </select>
+          </div>
           <label style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: "var(--font-kanit)", fontSize: 14, cursor: "pointer" }}>
             <input type="checkbox" checked={big} onChange={(e) => setBig(e.target.checked)} />
             รูปใหญ่ (2×2)
@@ -158,6 +182,14 @@ export default function GalleryManager({ initialPhotos }: { initialPhotos: Galle
                   fontFamily: "var(--font-kanit)",
                 }}>ใหญ่</span>
               )}
+              {p.category && (
+                <span style={{
+                  position: "absolute", top: 7, right: 7,
+                  fontSize: 18, lineHeight: 1,
+                }} title={GALLERY_CATEGORIES.find((c) => c.id === p.category)?.label}>
+                  {GALLERY_CATEGORIES.find((c) => c.id === p.category)?.icon}
+                </span>
+              )}
             </div>
 
             {/* Caption row */}
@@ -190,30 +222,30 @@ export default function GalleryManager({ initialPhotos }: { initialPhotos: Galle
               )}
             </div>
 
+            {/* Category selector */}
+            <div style={{ padding: "0 12px 6px" }}>
+              <select
+                value={p.category ?? ""}
+                onChange={(e) => changeCategory(p.id, e.target.value)}
+                style={{ ...selectStyle, fontSize: 12, padding: "3px 8px", width: "100%" }}
+              >
+                <option value="">— ไม่ระบุกลุ่ม —</option>
+                {GALLERY_CATEGORIES.map((c) => (
+                  <option key={c.id} value={c.id}>{c.icon} {c.label}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Action row */}
-            <div style={{ padding: "6px 12px 10px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ padding: "4px 12px 10px", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
               <button
                 onClick={() => toggleBig(p)}
                 title={p.big ? "เปลี่ยนเป็นรูปเล็ก" : "เปลี่ยนเป็นรูปใหญ่"}
                 style={chipBtn(p.big ? "var(--sup-teal)" : "#aaa")}
               >{p.big ? "2×2" : "1×1"}</button>
-              <button
-                onClick={() => move(p.id, "up")}
-                disabled={idx === 0}
-                title="ขึ้น"
-                style={iconBtn(idx === 0 ? "#ddd" : "#888")}
-              >↑</button>
-              <button
-                onClick={() => move(p.id, "down")}
-                disabled={idx === initialPhotos.length - 1}
-                title="ลง"
-                style={iconBtn(idx === initialPhotos.length - 1 ? "#ddd" : "#888")}
-              >↓</button>
-              <button
-                onClick={() => remove(p.id)}
-                title="ลบ"
-                style={{ ...iconBtn("#cf1322"), marginLeft: "auto" }}
-              >🗑</button>
+              <button onClick={() => move(p.id, "up")} disabled={idx === 0} title="ขึ้น" style={iconBtn(idx === 0 ? "#ddd" : "#888")}>↑</button>
+              <button onClick={() => move(p.id, "down")} disabled={idx === initialPhotos.length - 1} title="ลง" style={iconBtn(idx === initialPhotos.length - 1 ? "#ddd" : "#888")}>↓</button>
+              <button onClick={() => remove(p.id)} title="ลบ" style={{ ...iconBtn("#cf1322"), marginLeft: "auto" }}>🗑</button>
             </div>
           </div>
         ))}
@@ -230,6 +262,13 @@ const inputStyle: React.CSSProperties = {
   fontFamily: "var(--font-kanit)", fontSize: 14, padding: "7px 12px",
   borderRadius: 8, border: "1px solid var(--border-1)",
   outline: "none", color: "var(--fg-1)", background: "#fff",
+};
+
+const selectStyle: React.CSSProperties = {
+  fontFamily: "var(--font-kanit)", fontSize: 14, padding: "7px 12px",
+  borderRadius: 8, border: "1px solid var(--border-1)",
+  outline: "none", color: "var(--fg-1)", background: "#fff",
+  cursor: "pointer",
 };
 
 function btnStyle(disabled: boolean): React.CSSProperties {
