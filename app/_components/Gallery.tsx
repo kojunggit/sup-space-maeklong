@@ -198,14 +198,15 @@ export default function Gallery({ shots }: { shots: GalleryPhoto[] }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(5,1fr)",
-            gridAutoRows: "160px",
-            gap: 10,
+            gridTemplateColumns: "repeat(4,1fr)",
+            gridAutoRows: "200px",
+            gridAutoFlow: "dense",
+            gap: 14,
           }}
           className="gallery-grid"
         >
           {shots.map((s, i) => (
-            <Cell key={s.id} src={s.src} caption={s.caption} big={false} onClick={() => setLightboxIdx(i)} />
+            <Cell key={s.id} src={s.src} caption={s.caption} big={s.big} onClick={() => setLightboxIdx(i)} />
           ))}
         </div>
       </div>

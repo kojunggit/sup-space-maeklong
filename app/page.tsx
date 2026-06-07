@@ -9,7 +9,7 @@ export default async function HomePage() {
   const [trips, placeData, gallery] = await Promise.all([
     getUpcomingTrips(),
     getPlaceData(),
-    getLatestGalleryPhotos(20),
+    getLatestGalleryPhotos(10),
   ]);
   return <HomeClient initialTrips={trips} placeData={placeData} initialGallery={gallery} />;
 }
