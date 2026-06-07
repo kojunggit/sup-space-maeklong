@@ -12,7 +12,9 @@ services:
     build: .
     image: sup-space-maeklong
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - path: .env
+        required: true
     environment:
       NODE_ENV: production
       # ต่อ Postgres container ด้านล่างผ่าน service name "db" ในเน็ตเวิร์กเดียวกัน
@@ -54,4 +56,5 @@ volumes:
 
 networks:
   supspace:
+    external: true
     name: supspace
