@@ -179,9 +179,9 @@ const th: Translations = {
     reviewCount: (n) => `${n.toLocaleString()} รีวิว Google`,
   },
   gallery: {
-    eyebrow: "สัปดาห์ที่แล้ว",
+    eyebrow: "บันทึกความทรงจำ",
     title: { pre: "เรา", accent: "ถ่ายให้", post: "" },
-    sub: "บางส่วนจากสัปดาห์ที่แล้ว · ทีมเราถ่ายทั้งหมดบนน้ำ ไม่มีการจัดท่า",
+    sub: "ภาพความสุขความทรงจำล่าสุดที่เราถ่าย",
     cta: "มาให้เราถ่ายให้ →",
   },
   reviews: {
@@ -372,9 +372,9 @@ const en: Translations = {
     reviewCount: (n) => `${n.toLocaleString()} Google reviews`,
   },
   gallery: {
-    eyebrow: "Last week",
+    eyebrow: "Memories",
     title: { pre: "We ", accent: "shoot for you", post: "" },
-    sub: "Some shots from last week · our team shoots everything on the water, no staged poses",
+    sub: "The latest happy memories we've captured",
     cta: "Come let us shoot you →",
   },
   reviews: {

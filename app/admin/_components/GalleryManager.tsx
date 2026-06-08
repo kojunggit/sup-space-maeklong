@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { GalleryPhoto } from "@/app/actions/gallery";
@@ -14,6 +14,13 @@ import {
 export default function GalleryManager({ initialPhotos }: { initialPhotos: GalleryPhoto[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  const [photos, setPhotos] = useState<GalleryPhoto[]>(initialPhotos);
+
+  // Sync local state when server re-renders after router.refresh()
+  useEffect(() => {
+    setPhotos(initialPhotos);
+  }, [initialPhotos]);
 
   // Upload form state
   const [file, setFile] = useState<File | null>(null);
@@ -39,8 +46,11 @@ export default function GalleryManager({ initialPhotos }: { initialPhotos: Galle
     fd.append("category", uploadCategory);
     try {
       const res = await fetch("/api/admin/gallery", { method: "POST", body: fd });
-      const data = await res.json() as { error?: string };
+      const data = await res.json() as { error?: string; photo?: GalleryPhoto };
       if (!res.ok) { setUploadError(data.error ?? "อัปโหลดไม่สำเร็จ"); return; }
+      if (data.photo) {
+        setPhotos(prev => [data.photo!, ...prev]);
+      }
       setFile(null);
       setCaption("");
       setBig(false);
@@ -160,7 +170,7 @@ export default function GalleryManager({ initialPhotos }: { initialPhotos: Galle
         opacity: isPending ? 0.6 : 1,
         transition: "opacity 200ms",
       }}>
-        {initialPhotos.map((p, idx) => (
+        {photos.map((p, idx) => (
           <div key={p.id} style={{
             background: "#fff", borderRadius: 12, border: "1px solid var(--border-1)",
             boxShadow: "var(--shadow-sm)", overflow: "hidden",
@@ -244,7 +254,7 @@ export default function GalleryManager({ initialPhotos }: { initialPhotos: Galle
                 style={chipBtn(p.big ? "var(--sup-teal)" : "#aaa")}
               >{p.big ? "2×2" : "1×1"}</button>
               <button onClick={() => move(p.id, "up")} disabled={idx === 0} title="ขึ้น" style={iconBtn(idx === 0 ? "#ddd" : "#888")}>↑</button>
-              <button onClick={() => move(p.id, "down")} disabled={idx === initialPhotos.length - 1} title="ลง" style={iconBtn(idx === initialPhotos.length - 1 ? "#ddd" : "#888")}>↓</button>
+              <button onClick={() => move(p.id, "down")} disabled={idx === photos.length - 1} title="ลง" style={iconBtn(idx === photos.length - 1 ? "#ddd" : "#888")}>↓</button>
               <button onClick={() => remove(p.id)} title="ลบ" style={{ ...iconBtn("#cf1322"), marginLeft: "auto" }}>🗑</button>
             </div>
           </div>

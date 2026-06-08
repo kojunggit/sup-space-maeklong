@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/app/lib/prisma";
 import { assertAdmin } from "@/app/lib/auth";
 import { VALID_CATEGORY_IDS } from "@/app/lib/gallery-constants";
@@ -42,12 +43,16 @@ export async function POST(req: NextRequest) {
   await mkdir(uploadsDir, { recursive: true });
   await writeFile(join(uploadsDir, filename), Buffer.from(await file.arrayBuffer()));
 
-  const agg = await prisma.galleryPhoto.aggregate({ _max: { order: true } });
-  const order = (agg._max.order ?? -1) + 1;
+  const agg = await prisma.galleryPhoto.aggregate({ _min: { order: true } });
+  const order = (agg._min.order ?? 1) - 1;
 
   const photo = await prisma.galleryPhoto.create({
     data: { src: `/uploads/${filename}`, caption: caption || filename, big, category, order },
   });
+
+  revalidatePath("/");
+  revalidatePath("/gallery");
+  revalidatePath("/admin/gallery");
 
   return NextResponse.json({ ok: true, photo });
 }
