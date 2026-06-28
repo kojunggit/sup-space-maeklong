@@ -91,6 +91,7 @@ export interface Translations {
     // Contact
     nameLabel: string; namePlaceholder: string; nameError: string;
     phoneLabel: string; phoneError: string;
+    emailLabel: string; emailPlaceholder: string; emailError: string;
     channelLabel: string; channelOpt: string;
     channelPlaceholders: string[];
     pickupLabel: string; pickupNote: string; pickupPlaceholder: string;
@@ -116,6 +117,8 @@ export interface Translations {
     confirmedJoin: (host: string) => string;
     bookingRef: string;
     confirmedMsg: (name: string, boards: number, route: string, time: string, date: string, photo: string) => string;
+    confirmedEmailNote: string;
+    confirmedContactInfo: string;
     resetBook: string; resetJoin: string;
     errorGeneric: string;
     // Calendar locale
@@ -278,6 +281,7 @@ const th: Translations = {
     boardsNote: "เรามีบอร์ดและเสื้อชูชีพหลายขนาดเตรียมไว้ให้ ทีมงานจะช่วยจัดบอร์ดให้เหมาะกับแต่ละคนหน้างาน — มือใหม่ก็พายได้ ไม่ต้องมีประสบการณ์",
     nameLabel: "ชื่อผู้จอง", namePlaceholder: "มะลิ สุวรรณภา", nameError: "กรุณากรอกชื่อผู้จอง",
     phoneLabel: "เบอร์โทร", phoneError: "กรุณากรอกเบอร์โทรหรือ LINE ID",
+    emailLabel: "อีเมล", emailPlaceholder: "example@email.com", emailError: "กรุณากรอกอีเมลที่ถูกต้อง",
     channelLabel: "ช่องทางติดต่อ", channelOpt: "ไม่บังคับ",
     channelPlaceholders: ["LINE ID หรือ @username", "เบอร์โทร WhatsApp", "ชื่อ Facebook / username"],
     pickupLabel: "ที่อยู่รับ-ส่ง", pickupNote: "ถ้าต้องการบริการ · ใน 5 กม ฟรี",
@@ -304,6 +308,8 @@ const th: Translations = {
     bookingRef: "หมายเลขจอง",
     confirmedMsg: (name, boards, route, time, date, photo) =>
       `ขอบคุณ ${name || "คุณ"} · ${boards} บอร์ด เส้นทาง${route} · ${time} ${date} · ถ่ายภาพ: ${photo}`,
+    confirmedEmailNote: "กรุณารอ email ยืนยันการจองจากทีมงาน",
+    confirmedContactInfo: "สอบถามข้อมูลเพิ่มเติมได้ที่ WhatsApp 66837146958 หรือ Line @256pyxrx",
     resetBook: "จองอีก", resetJoin: "ร่วมทริปอื่น",
     errorGeneric: "เกิดข้อผิดพลาด กรุณาลองใหม่",
     dow: ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"],
@@ -471,6 +477,7 @@ const en: Translations = {
     boardsNote: "We have boards and life jackets in various sizes. Our team will match the right board for each person on the day — beginners are very welcome, no experience needed.",
     nameLabel: "Your name", namePlaceholder: "Jane Smith", nameError: "Please enter your name",
     phoneLabel: "Phone number", phoneError: "Please enter a phone number or LINE ID",
+    emailLabel: "Email", emailPlaceholder: "example@email.com", emailError: "Please enter a valid email address",
     channelLabel: "Contact channel", channelOpt: "optional",
     channelPlaceholders: ["LINE ID or @username", "WhatsApp phone number", "Facebook name / username"],
     pickupLabel: "Pickup address", pickupNote: "optional · free within 5 km",
@@ -497,6 +504,8 @@ const en: Translations = {
     bookingRef: "Booking ref",
     confirmedMsg: (name, boards, route, time, date, photo) =>
       `Thank you, ${name || "you"} · ${boards} board${boards > 1 ? "s" : ""}, ${route} route · ${time} on ${date} · Photo: ${photo}`,
+    confirmedEmailNote: "Please wait for a confirmation email from our team.",
+    confirmedContactInfo: "For any enquiries: WhatsApp 66837146958 or Line @256pyxrx",
     resetBook: "Book another", resetJoin: "Join another trip",
     errorGeneric: "An error occurred, please try again",
     dow: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],

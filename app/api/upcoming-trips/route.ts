@@ -1,0 +1,97 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/app/lib/prisma";
+import { ROUTES_BY_ID } from "@/app/_components/trips-data";
+
+const THAI_DAYS_SHORT   = ["อา", "จ.", "อ.", "พ.", "พฤ", "ศ.", "ส."];
+const THAI_DAYS_FULL    = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
+const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+
+export async function GET() {
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  try {
+    const settingRow = await prisma.setting.findUnique({ where: { key: "maxBoards" } }).catch(() => null);
+    const maxBoards  = settingRow ? (parseInt(settingRow.value, 10) || 8) : 8;
+
+    // ── Regular trips ──────────────────────────────────────────────────────────
+    const rows = await prisma.booking.findMany({
+      where:   { status: "CONFIRMED", dateIso: { gte: todayIso } },
+      orderBy: [{ dateIso: "asc" }, { timeSlot: "asc" }],
+    });
+
+    const groups = new Map<string, (typeof rows)[number][]>();
+    for (const row of rows) {
+      if (!row.dateIso || !row.routeId) continue;
+      const key = `${row.dateIso}|${row.timeSlot}|${row.routeId}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(row);
+    }
+
+    const trips: object[] = [];
+
+    for (const bookings of Array.from(groups.values())) {
+      const first  = bookings[0];
+      const d      = new Date(first.dateIso! + "T00:00:00");
+      const joined = bookings.reduce((sum: number, b) => sum + b.paddlers, 0);
+      const route  = first.routeId ? ROUTES_BY_ID[first.routeId] : null;
+      trips.push({
+        id:       `${first.dateIso}|${first.timeSlot}|${first.routeId}`,
+        type:     "regular",
+        date:     `${THAI_DAYS_SHORT[d.getDay()]} ${d.getDate()} ${THAI_MONTHS_SHORT[d.getMonth()]}`,
+        dateKey:  first.dateIso,
+        day:      THAI_DAYS_FULL[d.getDay()],
+        timeSlot: first.timeSlot,
+        routeId:  first.routeId,
+        route:    route ?? null,
+        joined:   Math.min(joined, maxBoards),
+        max:      maxBoards,
+        host:     first.guestName ?? "ลูกค้า",
+      });
+    }
+
+    // ── Special trips ──────────────────────────────────────────────────────────
+    const specialTrips = await (prisma as any).specialTrip.findMany({
+      where:   { status: "ACTIVE", dateIso: { gte: todayIso } },
+      orderBy: [{ dateIso: "asc" }, { timeSlot: "asc" }],
+    });
+
+    for (const st of specialTrips) {
+      const joinedRows = await prisma.booking.findMany({
+        where:  { specialTripId: st.id, status: { not: "CANCELLED" } },
+        select: { paddlers: true },
+      });
+      const joined = joinedRows.reduce((sum: number, b: { paddlers: number }) => sum + b.paddlers, 0);
+      const d = new Date(st.dateIso + "T00:00:00");
+      trips.push({
+        id:            `special|${st.id}`,
+        type:          "special",
+        date:          st.date,
+        dateKey:       st.dateIso,
+        day:           THAI_DAYS_FULL[d.getDay()],
+        timeSlot:      st.timeSlot,
+        name:          st.name,
+        description:   st.description,
+        location:      st.location,
+        rentalPrice:   st.rentalPrice,
+        ownBoardPrice: st.ownBoardPrice,
+        coverPhoto:    st.coverPhoto,
+        joined:        Math.min(joined, st.maxBoards),
+        max:           st.maxBoards,
+      });
+    }
+
+    trips.sort((a: any, b: any) => {
+      if (a.dateKey !== b.dateKey) return a.dateKey.localeCompare(b.dateKey);
+      return a.timeSlot.localeCompare(b.timeSlot);
+    });
+
+    return NextResponse.json(trips, {
+      headers: { "Cache-Control": "public, max-age=60" },
+    });
+  } catch (err) {
+    console.error("upcoming-trips API error:", err);
+    return NextResponse.json([], {
+      headers: { "Cache-Control": "public, max-age=60" },
+    });
+  }
+}

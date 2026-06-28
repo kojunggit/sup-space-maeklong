@@ -4,10 +4,12 @@ import BookingWidget from "./BookingWidget";
 import { useLang } from "./lang-context";
 import { T } from "./translations";
 import type { UpcomingTrip } from "./trips-data";
+import type { DBRoute } from "@/app/actions/routes";
 
 interface BookingSectionProps {
   joinTrip?: UpcomingTrip | null;
   onClearJoin?: () => void;
+  routes: DBRoute[];
 }
 
 function Reassurance({ text }: { text: string }) {
@@ -19,7 +21,7 @@ function Reassurance({ text }: { text: string }) {
   );
 }
 
-export default function BookingSection({ joinTrip, onClearJoin }: BookingSectionProps) {
+export default function BookingSection({ joinTrip, onClearJoin, routes }: BookingSectionProps) {
   const { lang } = useLang();
   const t = T[lang].booking;
 
@@ -48,7 +50,7 @@ export default function BookingSection({ joinTrip, onClearJoin }: BookingSection
           </div>
 
           <div>
-            <BookingWidget joinTrip={joinTrip} onClearJoin={onClearJoin} />
+            <BookingWidget joinTrip={joinTrip} onClearJoin={onClearJoin} routes={routes} />
           </div>
         </div>
       </div>

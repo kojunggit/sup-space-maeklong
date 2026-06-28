@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/app/lib/prisma";
 import { assertAdmin } from "@/app/lib/auth";
-import { ROUTES_BY_ID, isHourClosed, type ClosedSlotShape } from "@/app/_components/trips-data";
+import { isHourClosed, type ClosedSlotShape } from "@/app/_components/trips-data";
 import { sendTelegramNotification, buildBookingMessage } from "@/app/lib/telegram-notify";
 import { readTelegramConfig } from "@/app/lib/telegram-config";
+import { sendBookingConfirmationEmail } from "@/app/lib/email-notify";
 import { getActiveSpecialTrips } from "@/app/actions/special-trips";
 import type { UpcomingTrip } from "@/app/_components/trips-data";
 
@@ -27,6 +28,7 @@ export interface BookingPayload {
   total: number;
   guestName: string;
   guestPhone: string;
+  guestEmail?: string;
   contactChannel?: string;
   contactId?: string;
   pickupAddress?: string;
@@ -76,8 +78,10 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
     // Special trips bypass this guard (they have their own slot managed by admin)
     const newStartHour = parseHour(payload.timeSlot);
     if (!payload.specialTripId && newStartHour !== null && payload.dateIso) {
-      const newRoute    = ROUTES_BY_ID[payload.routeId];
-      const newDuration = newRoute?.duration ?? 2;
+      const newRouteRow = payload.routeId
+        ? await prisma.paddleRoute.findUnique({ where: { id: payload.routeId }, select: { duration: true } }).catch(() => null)
+        : null;
+      const newDuration = newRouteRow?.duration ?? 2;
       // Hours the new booking would occupy: [H, H+D-1]
       const newEnd = newStartHour + newDuration - 1;
 
@@ -89,6 +93,13 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
         select: { timeSlot: true, routeId: true },
       });
 
+      // Collect unique routeIds to batch-fetch durations
+      const routeIds = [...new Set(sameDayBookings.map((b) => b.routeId).filter(Boolean) as string[])];
+      const routeRows = routeIds.length > 0
+        ? await prisma.paddleRoute.findMany({ where: { id: { in: routeIds } }, select: { id: true, duration: true } })
+        : [];
+      const durationMap = Object.fromEntries(routeRows.map((r) => [r.id, r.duration]));
+
       for (const eb of sameDayBookings) {
         const ebStart = parseHour(eb.timeSlot);
         if (ebStart === null) continue; // skip legacy MORNING/AFTERNOON entries
@@ -96,8 +107,7 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
         // Same trip (join): same start + same route → allowed
         if (ebStart === newStartHour && eb.routeId === payload.routeId) continue;
 
-        const ebRoute    = eb.routeId ? ROUTES_BY_ID[eb.routeId] : null;
-        const ebDuration = ebRoute?.duration ?? 2;
+        const ebDuration = (eb.routeId ? durationMap[eb.routeId] : null) ?? 2;
         const ebEnd      = ebStart + ebDuration - 1;
 
         // Overlap: [newStart, newEnd] ∩ [ebStart, ebEnd] is non-empty
@@ -121,6 +131,7 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
         total:           payload.total,
         guestName:       payload.guestName        || null,
         guestPhone:      payload.guestPhone       || null,
+        guestEmail:      payload.guestEmail       || null,
         contactChannel:  payload.contactChannel   || null,
         contactId:       payload.contactId        || null,
         pickupAddress:   payload.pickupAddress    || null,
@@ -132,6 +143,7 @@ export async function createBooking(payload: BookingPayload): Promise<BookingRes
     if (tgConfig) {
       void sendTelegramNotification(buildBookingMessage(booking), tgConfig.token, tgConfig.chatId);
     }
+    void sendBookingConfirmationEmail(booking);
     revalidatePath("/");   // refresh UpcomingTrips on home page
     return { ok: true, id: booking.id };
   } catch (err) {
@@ -148,6 +160,8 @@ export interface BookingRecord {
   dateIso: string | null;
   timeSlot: string;
   routeId: string | null;
+  specialTripId: string | null;
+  boardChoice: string | null;
   paddlers: number;
   weight: number | null;
   skillLevel: string | null;
@@ -155,6 +169,7 @@ export interface BookingRecord {
   photoPermission: string;
   guestName: string | null;
   guestPhone: string | null;
+  guestEmail: string | null;
   contactChannel: string | null;
   contactId: string | null;
   pickupAddress: string | null;
@@ -269,6 +284,7 @@ export async function getUpcomingTrips(): Promise<UpcomingTrip[]> {
         specialRentalPrice:  st.rentalPrice,
         specialOwnBoardPrice: st.ownBoardPrice,
         specialLocation:     st.location,
+        specialCoverPhoto:   st.coverPhoto ?? undefined,
       });
     }
 

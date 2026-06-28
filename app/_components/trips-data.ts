@@ -69,6 +69,7 @@ export interface UpcomingTrip {
   specialRentalPrice?:   number;
   specialOwnBoardPrice?: number;
   specialLocation?:      string;
+  specialCoverPhoto?:    string;
 }
 
 export interface TimeSlot {

@@ -21,6 +21,7 @@ export interface SpecialTripPayload {
   timeSlot:      string;
   location:      string;
   maxBoards:     number;
+  coverPhoto?:   string;
 }
 
 export interface SpecialTripRecord {
@@ -34,6 +35,7 @@ export interface SpecialTripRecord {
   timeSlot:      string;
   location:      string;
   maxBoards:     number;
+  coverPhoto:    string | null;
   status:        string;
   createdAt:     string;
 }
@@ -57,6 +59,7 @@ export async function createSpecialTrip(
         timeSlot:      payload.timeSlot,
         location:      payload.location.trim(),
         maxBoards:     payload.maxBoards,
+        coverPhoto:    payload.coverPhoto ?? null,
         status:        "ACTIVE",
       },
     });
@@ -66,6 +69,58 @@ export async function createSpecialTrip(
   } catch (err) {
     console.error("createSpecialTrip error:", err);
     return { ok: false };
+  }
+}
+
+export async function updateSpecialTrip(
+  id: string,
+  payload: SpecialTripPayload,
+): Promise<{ ok: boolean }> {
+  await assertAdmin();
+  if (!payload.name.trim() || !payload.dateIso || !payload.timeSlot || !payload.location.trim()) {
+    return { ok: false };
+  }
+  try {
+    await (prisma as any).specialTrip.update({
+      where: { id },
+      data: {
+        name:          payload.name.trim(),
+        description:   payload.description?.trim() || null,
+        rentalPrice:   payload.rentalPrice,
+        ownBoardPrice: payload.ownBoardPrice,
+        dateIso:       payload.dateIso,
+        date:          toThaiDate(payload.dateIso),
+        timeSlot:      payload.timeSlot,
+        location:      payload.location.trim(),
+        maxBoards:     payload.maxBoards,
+        coverPhoto:    payload.coverPhoto ?? null,
+      },
+    });
+    revalidatePath("/");
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (err) {
+    console.error("updateSpecialTrip error:", err);
+    return { ok: false };
+  }
+}
+
+export async function deleteSpecialTrip(id: string): Promise<{ ok: boolean; error?: string }> {
+  await assertAdmin();
+  try {
+    const bookingCount = await prisma.booking.count({
+      where: { specialTripId: id, status: { not: "CANCELLED" } },
+    });
+    if (bookingCount > 0) {
+      return { ok: false, error: `มีการจอง ${bookingCount} รายการที่ยังไม่ยกเลิก` };
+    }
+    await (prisma as any).specialTrip.delete({ where: { id } });
+    revalidatePath("/");
+    revalidatePath("/admin");
+    return { ok: true };
+  } catch (err) {
+    console.error("deleteSpecialTrip error:", err);
+    return { ok: false, error: "ไม่สามารถลบได้" };
   }
 }
 

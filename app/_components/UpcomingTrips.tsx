@@ -96,9 +96,27 @@ function TripDetailModal({
           animation: "slideUp 200ms var(--ease-out)",
         }}
       >
+        {/* ── Cover photo ── */}
+        {isSpecial && trip.specialCoverPhoto && (
+          <div style={{ position: "relative", width: "100%", height: 200, borderRadius: "20px 20px 0 0", overflow: "hidden", flexShrink: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={trip.specialCoverPhoto} alt={trip.specialName ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <button
+              onClick={onClose}
+              style={{
+                position: "absolute", top: 12, right: 12,
+                width: 34, height: 34, borderRadius: 999,
+                border: "none", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)",
+                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 20, lineHeight: 1, color: "#fff",
+              }}
+            >×</button>
+          </div>
+        )}
+
         {/* ── Header ── */}
         <div style={{
-          padding: "22px 22px 0",
+          padding: isSpecial && trip.specialCoverPhoto ? "16px 22px 0" : "22px 22px 0",
           display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -124,15 +142,17 @@ function TripDetailModal({
               {!isSpecial && ` · ${timeRange}`}
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              flexShrink: 0, width: 34, height: 34, borderRadius: 999,
-              border: "none", background: "var(--slate-100)", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 20, lineHeight: 1, color: "var(--fg-3)",
-            }}
-          >×</button>
+          {!(isSpecial && trip.specialCoverPhoto) && (
+            <button
+              onClick={onClose}
+              style={{
+                flexShrink: 0, width: 34, height: 34, borderRadius: 999,
+                border: "none", background: "var(--slate-100)", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 20, lineHeight: 1, color: "var(--fg-3)",
+              }}
+            >×</button>
+          )}
         </div>
 
         {/* ── Body ── */}
@@ -402,15 +422,26 @@ function SpecialTripCard({
       style={{
         background: "linear-gradient(135deg, #F3E5F5, #E1BEE7)",
         border: `2px solid ${full ? "#CE93D8" : "#8E24AA"}`,
-        borderRadius: 12, padding: 18, cursor: "pointer",
+        borderRadius: 12, cursor: "pointer", overflow: "hidden",
         boxShadow: hover ? "0 8px 32px rgba(142,36,170,0.18)" : "0 2px 12px rgba(142,36,170,0.10)",
         transform: hover ? "translateY(-2px)" : "translateY(0)",
         transition: "all 220ms var(--ease-out)",
-        display: "flex", flexDirection: "column", gap: 10,
+        display: "flex", flexDirection: "column", gap: 0,
         opacity: full ? 0.72 : 1,
         outline: "none",
       }}
     >
+      {/* Cover photo */}
+      {trip.specialCoverPhoto && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={trip.specialCoverPhoto}
+          alt={trip.specialName ?? ""}
+          style={{ width: "100%", height: 120, objectFit: "cover", display: "block" }}
+        />
+      )}
+
+      <div style={{ padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
       {/* Badge + Date */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <span style={{
@@ -478,6 +509,7 @@ function SpecialTripCard({
         <span>{full ? t.full : (lang === "th" ? "ดูรายละเอียด" : "View details")}</span>
         {!full && <span style={{ fontSize: 16 }}>→</span>}
       </div>
+      </div>{/* end padding wrapper */}
     </div>
   );
 }
@@ -489,6 +521,17 @@ export default function UpcomingTrips({ trips, onJoin }: UpcomingTripsProps) {
   const [specialModalTrip, setSpecialModalTrip] = useState<UpcomingTrip | null>(null);
   const { lang } = useLang();
   const t = T[lang].trips;
+
+  // Auto-open lightbox when arriving from a share link (?trip=<id>)
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("trip");
+    if (!id) return;
+    const trip = trips.find((t) => t.id === id);
+    if (trip) setDetailTrip(trip);
+    // Remove the param so refresh / re-share don't re-trigger
+    const clean = window.location.pathname + window.location.hash;
+    window.history.replaceState(null, "", clean);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleJoin = (trip: UpcomingTrip) => {
     if (trip.isSpecial) {

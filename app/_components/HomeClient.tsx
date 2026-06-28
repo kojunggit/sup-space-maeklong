@@ -14,11 +14,13 @@ import Footer from "./Footer";
 import { type UpcomingTrip } from "./trips-data";
 import type { PlaceData } from "@/app/lib/google-places";
 import type { GalleryPhoto } from "@/app/actions/gallery";
+import type { DBRoute } from "@/app/actions/routes";
 
 interface HomeClientProps {
   initialTrips: UpcomingTrip[];
   placeData: PlaceData;
   initialGallery: GalleryPhoto[];
+  initialRoutes: DBRoute[];
 }
 
 function scrollToId(id: string, block: "start" | "center" = "start") {
@@ -32,7 +34,7 @@ function scrollToId(id: string, block: "start" | "center" = "start") {
   window.scrollTo({ top: Math.max(0, offset), behavior: "smooth" });
 }
 
-export default function HomeClient({ initialTrips, placeData, initialGallery }: HomeClientProps) {
+export default function HomeClient({ initialTrips, placeData, initialGallery, initialRoutes }: HomeClientProps) {
   const [joinTrip, setJoinTrip] = useState<UpcomingTrip | null>(null);
 
   const onBookClick = useCallback(() => scrollToId("book", "center"), []);
@@ -63,7 +65,7 @@ export default function HomeClient({ initialTrips, placeData, initialGallery }: 
     <div>
       <Header onBookClick={onBookClick} />
       <Hero onBookClick={onBookClick} rating={placeData.rating} reviewCount={placeData.reviewCount} />
-      <BookingSection joinTrip={joinTrip} onClearJoin={clearJoin} />
+      <BookingSection joinTrip={joinTrip} onClearJoin={clearJoin} routes={initialRoutes} />
       <Services />
       <UpcomingTrips trips={initialTrips} onJoin={handleJoin} />
       <div aria-hidden="true" style={{ padding: "40px 0", display: "flex", justifyContent: "center" }}>

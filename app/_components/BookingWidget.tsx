@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-  ROUTES, CATEGORIES, ROUTES_BY_ID,
-  PRIVATE_PHOTO_PRICE, TIME_SLOTS,
+  CATEGORIES, PRIVATE_PHOTO_PRICE, TIME_SLOTS,
   type UpcomingTrip, type RouteCategory,
 } from "./trips-data";
 import { createBooking } from "../actions/booking";
 import { useLang } from "./lang-context";
 import { T } from "./translations";
+import type { DBRoute } from "@/app/actions/routes";
 
 // ─── Date utilities ───────────────────────────────────────────────────────────
 
@@ -214,13 +214,14 @@ function StepTime({ timeSlot, setTimeSlot, availByDate, dateIso, loading }: {
 
 // ─── Step 3: Route ────────────────────────────────────────────────────────────
 
-function StepRoute({ route, setRoute, routeCat, setRouteCat }: {
+function StepRoute({ route, setRoute, routeCat, setRouteCat, routes }: {
   route: string; setRoute: (r: string) => void;
   routeCat: RouteCategory; setRouteCat: (c: RouteCategory) => void;
+  routes: DBRoute[];
 }) {
   const { lang } = useLang();
   const t = T[lang].widget;
-  const filtered = ROUTES.filter((r) => r.cat === routeCat);
+  const filtered = routes.filter((r) => r.cat === routeCat);
   const catIndex = CATEGORIES.findIndex((c) => c.id === routeCat);
   const catSkill = t.cats[catIndex]?.skill ?? "";
 
@@ -246,15 +247,17 @@ function StepRoute({ route, setRoute, routeCat, setRouteCat }: {
       <div style={{ display: "grid", gap: 8, maxHeight: 240, overflowY: "auto", paddingRight: 4 }}>
         {filtered.map((r) => {
           const sel = route === r.id;
+          const rName = lang === "en" ? (r.nameEn || r.name) : r.name;
+          const rNote = lang === "en" ? (r.noteEn || r.note) : r.note;
           return (
             <button key={r.id} onClick={() => setRoute(r.id)} style={{ textAlign: "left", padding: "11px 14px", borderRadius: 10, border: sel ? "2px solid var(--sup-orange)" : "1.5px solid var(--border-2)", background: sel ? "#FFF4E5" : "#fff", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, fontFamily: "var(--font-kanit)", transition: "all 180ms var(--ease-out)" }}>
               <span style={{ width: 18, height: 18, borderRadius: 999, border: sel ? "6px solid var(--sup-orange)" : "2px solid var(--slate-300)", flexShrink: 0, marginTop: 2 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
-                  <span style={{ fontWeight: 500, fontSize: 15, color: "var(--fg-1)" }}>{r.name}</span>
+                  <span style={{ fontWeight: 500, fontSize: 15, color: "var(--fg-1)" }}>{rName}</span>
                   {r.recommend && <span style={{ background: "var(--sup-orange)", color: "#fff", fontFamily: "var(--font-inter)", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 999, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>RECOMMEND</span>}
                 </div>
-                <div style={{ fontSize: 12, color: "var(--fg-2)", fontWeight: 300, marginTop: 2, lineHeight: 1.4 }}>{r.note}</div>
+                <div style={{ fontSize: 12, color: "var(--fg-2)", fontWeight: 300, marginTop: 2, lineHeight: 1.4 }}>{rNote}</div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
                 <div style={{ fontFamily: "var(--font-inter)", fontWeight: 700, color: "var(--sup-teal)", fontSize: 17, whiteSpace: "nowrap" }}>฿{r.price}</div>
@@ -308,16 +311,17 @@ const inputErrorStyle: React.CSSProperties = { ...inputStyle, borderColor: "var(
 const CONTACT_CHANNEL_IDS: ContactChannel[] = ["line", "whatsapp", "messenger"];
 const CONTACT_CHANNEL_ICONS = ["💬", "📲", "🗨️"];
 
-function StepContact({ name, setName, phone, setPhone, contactChannel, setContactChannel, contactId, setContactId, pickupAddress, setPickupAddress, notes, setNotes, photoPermission, setPhotoPermission, paddlers, summary, fieldErrors }: {
+function StepContact({ name, setName, phone, setPhone, email, setEmail, contactChannel, setContactChannel, contactId, setContactId, pickupAddress, setPickupAddress, notes, setNotes, photoPermission, setPhotoPermission, paddlers, summary, fieldErrors }: {
   name: string; setName: (s: string) => void;
   phone: string; setPhone: (s: string) => void;
+  email: string; setEmail: (s: string) => void;
   contactChannel: ContactChannel; setContactChannel: (c: ContactChannel) => void;
   contactId: string; setContactId: (s: string) => void;
   pickupAddress: string; setPickupAddress: (s: string) => void;
   notes: string; setNotes: (s: string) => void;
   photoPermission: PhotoPermission; setPhotoPermission: (p: PhotoPermission) => void;
   paddlers: number;
-  fieldErrors: { name?: string; phone?: string };
+  fieldErrors: { name?: string; phone?: string; email?: string };
   summary: {
     date: string;
     timeSlot: string;
@@ -351,6 +355,14 @@ function StepContact({ name, setName, phone, setPhone, contactChannel, setContac
         </span>
         <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="083 111 1111" style={fieldErrors.phone ? inputErrorStyle : inputStyle} />
         {fieldErrors.phone && <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 500 }}>⚠ {t.phoneError}</span>}
+      </label>
+
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: fieldErrors.email ? "var(--danger)" : "var(--fg-2)" }}>
+          {t.emailLabel} <span style={{ color: "var(--danger)" }}>*</span>
+        </span>
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.emailPlaceholder} style={fieldErrors.email ? inputErrorStyle : inputStyle} />
+        {fieldErrors.email && <span style={{ fontSize: 11, color: "var(--danger)", fontWeight: 500 }}>⚠ {t.emailError}</span>}
       </label>
 
       <div style={{ display: "grid", gap: 8 }}>
@@ -468,7 +480,17 @@ function ConfirmedState({ date, timeSlot, route, paddlers, name, photoPermission
         {t.confirmedMsg(name, paddlers, route.name, t.formatTime(timeSlot), date, photoLabel)}
       </p>
 
-      <div style={{ fontFamily: "var(--font-inter)", fontSize: 24, fontWeight: 700, color: "var(--fg-1)", marginBottom: 20 }}>฿{total.toLocaleString()}</div>
+      <div style={{ fontFamily: "var(--font-inter)", fontSize: 24, fontWeight: 700, color: "var(--fg-1)", marginBottom: 16 }}>฿{total.toLocaleString()}</div>
+
+      <div style={{ background: "var(--teal-50)", borderRadius: 10, padding: "12px 16px", maxWidth: 420, margin: "0 auto 16px", textAlign: "left" }}>
+        <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 500, fontSize: 14, color: "var(--teal-700)", margin: "0 0 6px", lineHeight: 1.5 }}>
+          📧 {t.confirmedEmailNote}
+        </p>
+        <p style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 13, color: "var(--teal-700)", margin: 0, lineHeight: 1.6 }}>
+          {t.confirmedContactInfo}
+        </p>
+      </div>
+
       <button onClick={onReset} className="btn btn-secondary">{joinHost ? t.resetJoin : t.resetBook}</button>
     </div>
   );
@@ -485,9 +507,10 @@ const cardStyle: React.CSSProperties = {
 interface BookingWidgetProps {
   joinTrip?: UpcomingTrip | null;
   onClearJoin?: () => void;
+  routes: DBRoute[];
 }
 
-export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: BookingWidgetProps) {
+export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin, routes }: BookingWidgetProps) {
   const { lang } = useLang();
   const t = T[lang].widget;
 
@@ -500,12 +523,13 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const [date, setDate]       = useState(() => isoToLabel(toIso(new Date()), t.dow, t.monthsShort, t.yearOffset));
 
   const [timeSlot, setTimeSlot]             = useState<string>("07:00");
-  const [route, setRoute]                   = useState("phoprak");
+  const [route, setRoute]                   = useState(() => routes[0]?.id ?? "phoprak");
   const [routeCat, setRouteCat]             = useState<RouteCategory>("short");
   const [paddlers, setPaddlers]             = useState(2);
   const [photoPermission, setPhotoPermission] = useState<PhotoPermission>("allow");
   const [name, setName]                     = useState("");
   const [phone, setPhone]                   = useState("");
+  const [email, setEmail]                   = useState("");
   const [pickupAddress, setPickupAddress]   = useState("");
   const [notes, setNotes]                   = useState("");
   const [step, setStep]                     = useState(0);
@@ -515,7 +539,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const [contactChannel, setContactChannel] = useState<ContactChannel>("line");
   const [contactId, setContactId]           = useState("");
 
-  const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; phone?: string; email?: string }>({});
   const [submitError, setSubmitError] = useState("");
 
   // Re-format date label when language changes
@@ -565,8 +589,8 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
     setDateIso(joinTripProp.dateKey);
     setTimeSlot(joinTripProp.timeSlot);
     setRoute(joinTripProp.routeId);
-    const r = ROUTES.find((x) => x.id === joinTripProp.routeId);
-    if (r) setRouteCat(r.cat);
+    const r = routes.find((x) => x.id === joinTripProp.routeId);
+    if (r) setRouteCat(r.cat as RouteCategory);
     setStep(3);
     setConfirmed(false);
   }, [joinTripProp]);
@@ -582,7 +606,8 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   };
 
   const isJoin = !!joinTripProp;
-  const selectedRoute = ROUTES_BY_ID[route] ?? ROUTES[0];
+  const selectedRoute = routes.find((r) => r.id === route) ?? routes[0];
+  if (!selectedRoute) return null; // routes not loaded yet — render nothing
   const photoTotal = photoPermission === "private" && paddlers >= 2 ? PRIVATE_PHOTO_PRICE * paddlers : 0;
   const baseTotal = selectedRoute.price * paddlers;
   const total = baseTotal + photoTotal;
@@ -591,9 +616,10 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
   const prev = () => setStep((s) => Math.max(s - 1, isJoin ? 3 : 0));
 
   const validate = () => {
-    const errs: { name?: string; phone?: string } = {};
+    const errs: { name?: string; phone?: string; email?: string } = {};
     if (!name.trim()) errs.name = t.nameError;
     if (!phone.trim()) errs.phone = t.phoneError;
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errs.email = t.emailError;
     setFieldErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -606,7 +632,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
       date, dateIso, timeSlot, routeId: route,
       paddlers,
       photoPermission, total,
-      guestName: name, guestPhone: phone,
+      guestName: name, guestPhone: phone, guestEmail: email || undefined,
       contactChannel: contactId ? contactChannel : undefined,
       contactId: contactId || undefined,
       pickupAddress: pickupAddress || undefined,
@@ -621,7 +647,22 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
     }
   };
 
-  const handleReset = () => { setConfirmed(false); setStep(0); setFieldErrors({}); setSubmitError(""); setContactChannel("line"); setContactId(""); onClearJoin?.(); };
+  const handleReset = () => {
+    setConfirmed(false);
+    setStep(0);
+    setName(""); setPhone(""); setEmail("");
+    setPickupAddress(""); setNotes("");
+    setPaddlers(2); setPhotoPermission("allow");
+    setContactChannel("line"); setContactId("");
+    const todayIso = toIso(new Date());
+    setDateIso(todayIso);
+    setDate(isoToLabel(todayIso, t.dow, t.monthsShort, t.yearOffset));
+    setTimeSlot("07:00");
+    const firstRoute = routes[0];
+    if (firstRoute) { setRoute(firstRoute.id); setRouteCat(firstRoute.cat as RouteCategory); }
+    setFieldErrors({}); setSubmitError("");
+    onClearJoin?.();
+  };
 
   if (confirmed) {
     return (
@@ -675,12 +716,13 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin }: B
       <div style={{ minHeight: 300 }}>
         {step === 0 && <StepWhen dateIso={dateIso} onSelect={handleDateSelect} availByDate={availByDate} loading={availLoading} viewMonth={viewMonth} setViewMonth={setViewMonth} />}
         {step === 1 && <StepTime timeSlot={timeSlot} setTimeSlot={setTimeSlot} availByDate={availByDate} dateIso={dateIso} loading={availLoading} />}
-        {step === 2 && <StepRoute route={route} setRoute={setRoute} routeCat={routeCat} setRouteCat={setRouteCat} />}
+        {step === 2 && <StepRoute route={route} setRoute={setRoute} routeCat={routeCat} setRouteCat={setRouteCat} routes={routes} />}
         {step === 3 && <StepPaddlers paddlers={paddlers} setPaddlers={setPaddlers} />}
         {step === 4 && (
           <StepContact
             name={name} setName={(v) => { setName(v); setFieldErrors((e) => ({ ...e, name: undefined })); }}
             phone={phone} setPhone={(v) => { setPhone(v); setFieldErrors((e) => ({ ...e, phone: undefined })); }}
+            email={email} setEmail={(v) => { setEmail(v); setFieldErrors((e) => ({ ...e, email: undefined })); }}
             contactChannel={contactChannel} setContactChannel={setContactChannel}
             contactId={contactId} setContactId={setContactId}
             pickupAddress={pickupAddress} setPickupAddress={setPickupAddress}

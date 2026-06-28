@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import {
-  TIME_SLOTS, ROUTES_BY_ID,
+  TIME_SLOTS,
   isDayClosed, isHourClosed, type ClosedSlotShape,
 } from "@/app/_components/trips-data";
 
@@ -63,6 +63,13 @@ export async function GET(req: NextRequest) {
       select: { dateIso: true, timeSlot: true, routeId: true },
     });
 
+    // Batch-fetch durations from DB for all unique routeIds in range
+    const routeIds = [...new Set(rows.map((r) => r.routeId).filter(Boolean) as string[])];
+    const routeRows = routeIds.length > 0
+      ? await prisma.paddleRoute.findMany({ where: { id: { in: routeIds } }, select: { id: true, duration: true } })
+      : [];
+    const durationMap = Object.fromEntries(routeRows.map((r) => [r.id, r.duration]));
+
     // Build occupied-hours set: "2026-05-22|9" → occupied
     // Each booking occupies [startHour, startHour + duration - 1]
     const occupied = new Set<string>();
@@ -70,8 +77,7 @@ export async function GET(req: NextRequest) {
       if (!r.dateIso) continue;
       const startHour = parseHour(r.timeSlot);
       if (startHour === null) continue; // legacy MORNING/AFTERNOON — skip
-      const route    = r.routeId ? ROUTES_BY_ID[r.routeId] : null;
-      const duration = route?.duration ?? 2;
+      const duration = (r.routeId ? durationMap[r.routeId] : null) ?? 2;
       for (let h = startHour; h < startHour + duration && h <= 17; h++) {
         occupied.add(`${r.dateIso}|${h}`);
       }

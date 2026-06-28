@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { ROUTES, CATEGORIES, type Route } from "@/app/_components/trips-data";
+import { CATEGORIES } from "@/app/_components/trips-data";
 import Footer from "@/app/_components/Footer";
 import { LangProvider, useLang } from "@/app/_components/lang-context";
 import { T } from "@/app/_components/translations";
+import type { DBRoute } from "@/app/actions/routes";
 
 // Category accent colors
 const CAT_ACCENT: Record<string, string> = {
@@ -54,26 +55,61 @@ function StatChip({ icon, label }: { icon: string; label: string }) {
   );
 }
 
-function RouteCard({ route }: { route: Route }) {
+// ─── Route photo lightbox ─────────────────────────────────────────────────────
+
+function PhotoStrip({ photos, routeName }: { photos: DBRoute["photos"]; routeName: string }) {
+  if (photos.length === 0) return null;
+  return (
+    <div style={{ display: "flex", gap: 6, overflowX: "auto", margin: "12px -22px", padding: "0 22px", scrollbarWidth: "none" }}>
+      {photos.map((p) => (
+        <div key={p.id} style={{ position: "relative", width: 120, height: 88, flexShrink: 0, borderRadius: 8, overflow: "hidden", border: "1px solid var(--border-1)" }}>
+          <Image src={p.src} alt={p.caption || routeName} fill style={{ objectFit: "cover" }} sizes="120px" />
+        </div>
+      ))}
+      <style>{`.photo-strip::-webkit-scrollbar{display:none}`}</style>
+    </div>
+  );
+}
+
+function RouteCard({ route }: { route: DBRoute }) {
   const { lang } = useLang();
   const t = T[lang].routesPage;
   const accent = CAT_ACCENT[route.cat];
-  const name = t.routeNames[route.id] ?? route.name;
-  const desc = t.routeDesc[route.id] ?? route.note;
-  const warn = t.routeWarn[route.id];
+
+  const name = lang === "en" ? (route.nameEn || route.name) : route.name;
+  const desc = lang === "en"
+    ? (route.descEn || route.descTh || route.note)
+    : (route.descTh || route.note);
+  const warn = lang === "en" ? route.warnEn : route.warnTh;
 
   return (
-    <div style={{
-      background: "#fff", borderRadius: 14,
-      border: "1px solid var(--border-1)",
-      boxShadow: "var(--shadow-sm)",
-      display: "flex", flexDirection: "column",
-      overflow: "hidden",
-      transition: "box-shadow 220ms var(--ease-out), transform 220ms var(--ease-out)",
-    }}
+    <div
+      style={{
+        background: "#fff", borderRadius: 14,
+        border: "1px solid var(--border-1)",
+        boxShadow: "var(--shadow-sm)",
+        display: "flex", flexDirection: "column",
+        overflow: "hidden",
+        transition: "box-shadow 220ms var(--ease-out), transform 220ms var(--ease-out)",
+      }}
       className="route-card"
     >
-      <div style={{ height: 4, background: accent, flexShrink: 0 }} />
+      {/* Cover photo or accent bar */}
+      {route.photos[0] ? (
+        <div style={{ position: "relative", height: 160, flexShrink: 0 }}>
+          <Image
+            src={route.photos[0].src}
+            alt={name}
+            fill
+            style={{ objectFit: "cover" }}
+            sizes="(max-width: 640px) 100vw, 340px"
+          />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.25) 0%, transparent 60%)" }} />
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 4, background: accent }} />
+        </div>
+      ) : (
+        <div style={{ height: 4, background: accent, flexShrink: 0 }} />
+      )}
 
       <div style={{ padding: "20px 22px", flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
 
@@ -100,6 +136,11 @@ function RouteCard({ route }: { route: Route }) {
         }}>
           {desc}
         </p>
+
+        {/* Additional photos strip */}
+        {route.photos.length > 1 && (
+          <PhotoStrip photos={route.photos.slice(1)} routeName={name} />
+        )}
 
         {warn && (
           <div style={{
@@ -147,7 +188,7 @@ function RouteCard({ route }: { route: Route }) {
   );
 }
 
-function CategorySection({ cat, routes }: { cat: string; routes: Route[] }) {
+function CategorySection({ cat, routes }: { cat: string; routes: DBRoute[] }) {
   const { lang } = useLang();
   const t = T[lang].routesPage;
   const accent = CAT_ACCENT[cat];
@@ -208,10 +249,11 @@ function CategorySection({ cat, routes }: { cat: string; routes: Route[] }) {
 
 // ─── Page body ─────────────────────────────────────────────────────────────────
 
-function RoutesBody() {
+function RoutesBody({ routes }: { routes: DBRoute[] }) {
   const { lang } = useLang();
   const t = T[lang].routesPage;
-  const byCategory = (cat: string) => ROUTES.filter((r) => r.cat === cat);
+  const byCategory = (cat: string) => routes.filter((r) => r.cat === cat);
+  const totalCount = routes.length;
 
   return (
     <div style={{ background: "var(--bg-page)", minHeight: "100vh" }}>
@@ -281,7 +323,7 @@ function RoutesBody() {
             fontSize: 52, lineHeight: 1.1, letterSpacing: "-0.02em",
             color: "#fff", margin: "0 0 16px",
           }}>
-            {t.titlePre}<span style={{ color: "var(--sup-orange)" }}>{t.titleAccent}</span>
+            {totalCount} {t.titleAccent}
             <br />
             <span style={{ fontWeight: 300, fontSize: 28, color: "rgba(255,255,255,0.78)" }}>
               {t.titleSub}
@@ -322,11 +364,15 @@ function RoutesBody() {
       {/* ── Route sections ───────────────────────────────────────────────────── */}
       <main className="container" style={{ padding: "56px 24px" }}>
 
-        {CATEGORIES.map((c) => (
-          <div key={c.id} id={`cat-${c.id}`} style={{ scrollMarginTop: 80 }}>
-            <CategorySection cat={c.id} routes={byCategory(c.id)} />
-          </div>
-        ))}
+        {CATEGORIES.map((c) => {
+          const catRoutes = byCategory(c.id);
+          if (catRoutes.length === 0) return null;
+          return (
+            <div key={c.id} id={`cat-${c.id}`} style={{ scrollMarginTop: 80 }}>
+              <CategorySection cat={c.id} routes={catRoutes} />
+            </div>
+          );
+        })}
 
         {/* ── Custom trip ──────────────────────────────────────────────────── */}
         <section style={{
@@ -428,10 +474,10 @@ function RoutesBody() {
   );
 }
 
-export default function RoutesClient() {
+export default function RoutesClient({ routes }: { routes: DBRoute[] }) {
   return (
     <LangProvider>
-      <RoutesBody />
+      <RoutesBody routes={routes} />
     </LangProvider>
   );
 }

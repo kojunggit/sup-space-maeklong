@@ -26,6 +26,7 @@ model Booking {
   user            User?    @relation(fields: [userId], references: [id])
   guestName       String?
   guestPhone      String?
+  guestEmail      String?
   contactChannel  String?  // line | whatsapp | messenger
   contactId       String?  // ID/username on that platform
   date            String
@@ -57,6 +58,7 @@ model SpecialTrip {
   timeSlot      String   // "09:00"
   location      String
   maxBoards     Int      @default(8)
+  coverPhoto    String?  // "/uploads/<uuid>.jpg"
   status        String   @default("ACTIVE")
   createdAt     DateTime @default(now())
 }
@@ -123,4 +125,35 @@ model GalleryPhoto {
   big       Boolean  @default(false)
   order     Int      @default(0)
   createdAt DateTime @default(now())
+}
+
+model PaddleRoute {
+  id        String       @id  // text slug e.g. "phoprak" (legacy) or generated
+  cat       String       // "short" | "medium" | "long"
+  name      String       // Thai name (used in booking widget)
+  note      String       @default("")  // Thai short tagline
+  nameEn    String       @default("")  // English name
+  noteEn    String       @default("")  // English short tagline
+  descTh    String       @default("")  // Thai long description
+  descEn    String       @default("")  // English long description
+  warnTh    String       @default("")  // Thai warning (empty = none)
+  warnEn    String       @default("")  // English warning (empty = none)
+  km        Float        @default(0)
+  price     Int          @default(500)
+  duration  Int          @default(2)
+  recommend Boolean      @default(false)
+  order     Int          @default(0)
+  photos    RoutePhoto[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model RoutePhoto {
+  id        String      @id @default(cuid())
+  routeId   String
+  route     PaddleRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  src       String
+  caption   String      @default("")
+  order     Int         @default(0)
+  createdAt DateTime    @default(now())
 }
