@@ -5,6 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import type { GalleryPhoto } from "@/app/actions/gallery";
 import { GALLERY_CATEGORIES } from "@/app/lib/gallery-constants";
+import CampaignBar from "@/app/_components/CampaignBar";
+import { useCampaignBarVisible } from "@/app/_components/useCampaignBar";
+import { CAMPAIGN_BAR_HEIGHT } from "@/app/_components/campaign-config";
+import type { CampaignStats } from "@/app/actions/campaign";
 
 const ALL = "__all__";
 
@@ -165,10 +169,11 @@ function EmptyState() {
   );
 }
 
-export default function GalleryPageClient({ photos }: { photos: GalleryPhoto[] }) {
+export default function GalleryPageClient({ photos, campaignStats }: { photos: GalleryPhoto[]; campaignStats: CampaignStats }) {
   const [activeCat, setActiveCat] = useState<string>(ALL);
   const [filterKey, setFilterKey] = useState(0);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const [barVisible] = useCampaignBarVisible();
 
   const filtered = activeCat === ALL ? photos : photos.filter((p) => p.category === activeCat);
 
@@ -192,10 +197,12 @@ export default function GalleryPageClient({ photos }: { photos: GalleryPhoto[] }
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+      <CampaignBar remainingSlots={campaignStats.remainingSlots} />
 
       {/* Sticky header */}
       <header style={{
-        position: "sticky", top: 0, zIndex: 200,
+        position: "sticky", top: barVisible ? CAMPAIGN_BAR_HEIGHT : 0, zIndex: 200,
+        transition: "top 200ms",
         background: "rgba(255,255,255,0.96)", backdropFilter: "blur(12px)",
         borderBottom: "1px solid var(--border-1)",
         height: 60, padding: "0 24px",

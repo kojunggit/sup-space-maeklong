@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function GalleryPage() {
   const photos = await getGalleryPhotos();
   return (
-    <div style={{ padding: "24px" }}>
+    <div className="p-4 md:p-6">
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontFamily: "var(--font-kanit)", fontSize: 22, fontWeight: 700, color: "var(--fg-1)", margin: 0 }}>
           จัดการแกลเลอรี

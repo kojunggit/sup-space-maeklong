@@ -1,89 +1,133 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file describes the current SUP Space Maeklong codebase and the constraints to preserve when changing it.
 
 ## Commands
 
 ```bash
-npm run dev          # start dev server (Next.js on port 3000)
-npm run build        # prisma db push → next build (requires live Postgres)
-npm run lint         # next lint
+npm run dev          # Next.js development server on port 3000
+npm run build        # prisma db push, then next build; requires reachable PostgreSQL
+npx next build       # validate/build without changing the database schema
+npx tsc --noEmit     # TypeScript validation only
+npm run lint         # currently launches the interactive Next.js ESLint setup
 ```
 
-There are no tests. `npm run build` is the primary correctness check — it runs `prisma db push` to sync the schema and then builds all routes.
+There is no automated test suite. The current production build target is Next.js 15. `npm run lint` is not CI-ready until an ESLint configuration is added.
 
 ## Environment variables
 
-Required in `.env` (see `.env.example`):
+See `.env.example` for native/local use and `.env.docker.example` for Docker.
 
-| Variable | Purpose |
-|---|---|
-| `PRISMA_DATABASE_URL` | PostgreSQL connection string |
-| `ADMIN_PASSWORD` | Admin login password |
-| `SESSION_SECRET` | HMAC-SHA256 signing key for session tokens (falls back to `ADMIN_PASSWORD` if unset) |
-| `GOOGLE_PLACES_API_KEY` | Google Places API key for fetching reviews |
-| `GOOGLE_PLACE_ID` | Google Place ID for the business |
+| Variable | Required | Purpose |
+|---|---:|---|
+| `PRISMA_DATABASE_URL` | yes | PostgreSQL connection string used by Prisma CLI and runtime |
+| `ADMIN_PASSWORD` | yes | Password for `/admin/login` |
+| `SESSION_SECRET` | recommended | HMAC-SHA256 admin-session signing key; falls back to `ADMIN_PASSWORD` |
+| `GOOGLE_PLACES_API_KEY` | no | Google Places reviews and rating |
+| `GOOGLE_PLACE_ID` | no | Business Place ID |
+| `RESEND_API_KEY` | no | Sends booking-received email through Resend |
+| `RESEND_FROM_EMAIL` | no | Verified sender; defaults to `booking@supspacemaeklong.com` |
+| `BOOKING_API_KEY` | no | Bearer key for `POST /api/booking`; endpoint returns 503 when unset |
 
-Telegram config (token, chat ID, webhook secret) is stored in the `Setting` DB table, not in `.env`, and is managed via the admin panel.
+Telegram bot token, chat ID, and webhook secret live in the `Setting` table and are managed from Admin Settings.
+
+The customer chat widget calls the separate public service at `https://bot.supspacemaeklong.com`; its URL is currently a constant in `app/_components/ChatWidget.tsx`.
+
+The GoGreen registrant source is a public Google Sheet whose ID and column mapping are constants in `app/gogreen/lib/sheet.ts`.
 
 ## Architecture
 
-### Tech stack
-Next.js 15 (App Router), React 19, TypeScript, Prisma 7 with `@prisma/adapter-pg` (raw pg driver — not the default Prisma connection), Tailwind CSS.
+### Stack and data layer
 
-### Data layer
-`app/lib/prisma.ts` — singleton PrismaClient cached on `globalThis` to survive hot-reload. The connection uses `PRISMA_DATABASE_URL`. All server actions and route handlers import from here.
+Next.js 15 App Router, React 19, TypeScript, Tailwind CSS, Prisma 7, `@prisma/adapter-pg`, and PostgreSQL.
 
-Schema models: `Setting` (key/value config store), `Booking`, `SpecialTrip`, `Member` + `MemberPackage` + `VisitLog` (membership system), `GalleryPhoto`.
+`app/lib/prisma.ts` creates a raw `pg` pool and a singleton Prisma client cached on `globalThis`. `prisma.config.ts` supplies `PRISMA_DATABASE_URL` to Prisma CLI commands.
 
-### Auth
-`app/lib/auth.ts` implements a custom, password-based admin session using HMAC-SHA256 signed cookies (Web Crypto API — works in both Node and Edge runtimes). No OAuth, no NextAuth for admin. The cookie is `admin_auth`; middleware at `middleware.ts` guards all `/admin/*` routes except `/admin/login`.
+Current Prisma models:
 
-`assertAdmin()` is called at the top of every admin-only server action and route handler.
+- Core: `Setting`, `User`, `Booking`, `SpecialTrip`
+- Membership: `Member`, `MemberPackage`, `VisitLog`
+- Content/routes: `GalleryPhoto`, `PaddleRoute`, `RoutePhoto`
+- Campaign/event: `DanceChallengeEntry`, `GoGreenRegistration`
 
-### i18n
-The site is bilingual (Thai/English). `app/_components/lang-context.tsx` provides a `LangContext` with `"th" | "en"`. All UI strings live in `app/_components/translations.ts` as a typed `T: Record<Lang, Translations>` object — no external i18n library. Components read translations via `const t = T[lang]`.
+Routes are database-driven. `app/_components/trips-data.ts` still contains time slots, categories, formatting helpers, and legacy fallback route data; keep it free of browser-only APIs because server code imports it.
+
+### Authentication
+
+`app/lib/auth.ts` implements password-based admin sessions using an HMAC-SHA256 signed `admin_auth` cookie. `middleware.ts` protects `/admin/*` except `/admin/login`. Admin server actions and admin API handlers call `assertAdmin()` or `isAdminRequest()`.
+
+`POST /api/booking` does not use the admin cookie. It uses `Authorization: Bearer <BOOKING_API_KEY>`.
+
+The `/gogreen/*` pages and their server actions are currently public and are not covered by admin middleware.
+
+### Internationalization
+
+The customer site is Thai/English. `app/_components/lang-context.tsx` provides `"th" | "en"`; typed strings are in `app/_components/translations.ts`. There is no external i18n library.
 
 ### Public pages
-- `/` — single-page landing with sections: Hero, Services, BookingWidget, UpcomingTrips, Gallery, Reviews, About, Footer. Assembled in `app/_components/HomeClient.tsx`.
-- `/routes` — full route catalogue rendered by `app/routes/RoutesClient.tsx`.
-- `/gallery` — full gallery page with category filtering and lightbox.
 
-### Booking flow
-`app/_components/BookingWidget.tsx` — multi-step booking form (Date → Time → Route → Boards → Contact → Summary). Calls the `createBooking` server action in `app/actions/booking.ts`.
+- `/` — landing page: campaign bar/ribbon, hero, services, booking, upcoming trips, gallery, reviews, about, footer
+- `/routes` — DB-backed route catalogue
+- `/gallery` — category filtering and lightbox
+- `/dance-challenge` and `/dance-challenge/rules` — bilingual campaign page, countdown, rules, and clip submission
+- `/gogreen`, `/gogreen/list`, `/gogreen/register`, `/gogreen/report`, `/gogreen/trash` — event check-in/reporting tools
+- `/privacy` and `/data-deletion` — privacy disclosures
 
-`createBooking` enforces three guards before writing to DB:
-1. No duplicate booking (same phone + date + time)
-2. Date/hour not in the `closedSlots` setting
-3. No time-overlap with existing bookings (uses route `duration` from `trips-data.ts` to block overlapping hours)
+`app/layout.tsx` mounts the global customer ChatWidget on all non-admin routes.
 
-Route and time-slot definitions live in `app/_components/trips-data.ts` (also imported by server-side code — keep it free of browser-only APIs).
+### Booking
 
-Special trips (admin-created one-off events) bypass guard 3 and use their own `maxBoards` capacity.
+The browser form calls `createBooking()` in `app/actions/booking.ts`. The authenticated chatbot API calls `POST /api/booking`. Both delegate writes to `createBookingRecord()` in `app/lib/booking-core.ts`.
 
-### Telegram integration
-Two separate uses:
+The shared writer currently enforces:
 
-1. **Booking notifications** — `app/lib/telegram-notify.ts` fires a one-way message to the owner's chat whenever a booking is created. Config is read from the `Setting` table via `app/lib/telegram-config.ts`.
+1. the target trip is not in the `closedTripKeys` setting (Admin can make an existing trip private);
+2. no non-cancelled duplicate with the same stored phone, ISO date, and time;
+3. the date/hour is not in the `closedSlots` setting;
+4. regular trips do not overlap another route's occupied hours; joining the same route and start time is allowed.
 
-2. **Membership check bot** — `app/api/telegram/route.ts` is a full webhook handler. The owner types a member's phone number; the bot looks up the member and presents inline-keyboard buttons to record a visit against their package.
+Admin Bookings groups regular trips by date + time + route and special trips by special-trip ID. “ปิดรับจอง” stores a stable trip key in `Setting.closedTripKeys`; the public upcoming-trip payload returns `closed: true`, displays the trip as full, disables joining, and the shared writer rejects stale/direct requests. Admin can reopen the same trip.
+
+Special trips bypass overlap guard 3. Capacity is displayed using `maxBoards`, but the shared writer does not currently reject bookings that exceed regular or special-trip capacity.
+
+After a booking is written, Telegram and Resend notifications run best-effort. Uploads are stored under `public/uploads/`; Docker mounts that directory as a persistent volume and `/api/uploads/[...path]` serves uploaded images.
+
+### Dance Challenge campaign
+
+Campaign constants, deadline, quota, LINE link, and song URL are in `app/_components/campaign-config.ts`. Submissions are stored in `DanceChallengeEntry`; the first entry for a unique phone can decrement the campaign quota and create a complimentary one-visit membership package. Admin can view entries and manually adjust campaign counters.
+
+The campaign deadline is currently `2026-08-15T23:59:00+07:00`. The quota counter update is read-then-upsert rather than atomic, and submission/quota/member creation are not one database transaction.
+
+### GoGreen
+
+`app/gogreen/lib/sheet.ts` fetches a public Google Sheet as CSV with `cache: "no-store"`. The sheet is read-only. Local check-in state, walk-ins, boat numbers, and trash weights are stored in `GoGreenRegistration`. Kayak 1-seat numbers start at 101 and 2-seat numbers at 201.
+
+GoGreen data and mutation server actions are in `app/actions/gogreen.ts`. They are currently public and contain participant names and phone numbers; treat access-control changes as security-sensitive.
+
+### Telegram and membership
+
+- Booking and Dance Challenge notifications use `app/lib/telegram-notify.ts`.
+- `app/api/telegram/route.ts` is the membership webhook. The owner searches by phone and records visits using inline keyboard callbacks.
+- Count packages consume visits; monthly packages begin on first use and expire after one month.
 
 ### Admin panel
-All pages under `app/admin/(panel)/`. Server actions in `app/actions/` handle mutations; each asserts admin before touching the DB. Key managers:
 
-- **Bookings** — view/confirm/cancel bookings
-- **Gallery** — upload photos (stored in `public/uploads/`), set order/category/big flag; API routes at `app/api/admin/gallery/`
-- **Members** — manage membership packages and view visit history
-- **Settings** — `maxBoards` capacity, closed slots, Telegram config
-- **Special trips** — admin-created one-off trip events
+Pages under `app/admin/(panel)/` manage bookings, routes/photos, gallery, members/packages/visits, special trips, Dance Challenge entries, campaign counters, capacity, closed slots, and Telegram configuration.
 
-### Google Places
-`app/lib/google-places.ts` — fetched at render time with a 6-hour Next.js cache (`next: { revalidate: 21600 }`). Falls back to hardcoded values if env vars are missing.
+## Public and admin APIs
+
+The API contract is documented in `manual_api.md`; `public.md` is the shorter chatbot/integration reference. Important routes are:
+
+- Public reads: `/api/routes`, `/api/upcoming-trips`, `/api/availability`, `/api/uploads/[...path]`
+- Bearer-authenticated write: `POST /api/booking`
+- Admin: `/api/admin/auth`, `/api/admin/gallery`, `/api/admin/gallery/[id]`, `/api/admin/route-photo`, `/api/admin/trip-photo`, `/api/debug-places`
+- Telegram webhook: `/api/telegram`
 
 ## Deployment
 
-Two options documented in `DEPLOY.md`:
-- **Docker + Traefik** — `Dockerfile` + `docker-compose.yml`; entrypoint runs `prisma db push` then `next start`.
-- **Native PM2 + Nginx** — `deploy/setup-vps.sh` for first-time setup; `deploy/update.sh` for updates.
+See `DEPLOY.md`.
 
-`npm run build` calls `prisma db push` before building, so the DB must be reachable at build time.
+- Docker + Traefik: image build runs `npx next build`; `docker-entrypoint.sh` runs `prisma db push` at container start.
+- Native PM2 + Nginx: `npm run build` syncs the schema and builds before PM2 restart.
+
+Persist and back up both PostgreSQL and `public/uploads`. Database schema changes are applied with `prisma db push`; this repository does not currently use committed Prisma migrations.

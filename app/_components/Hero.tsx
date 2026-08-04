@@ -4,11 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLang } from "./lang-context";
 import { T } from "./translations";
+import { isCampaignActive } from "./campaign-config";
 
 interface HeroProps {
   onBookClick: () => void;
   rating: number;
   reviewCount: number;
+  participants: number;
 }
 
 const AVATARS = [
@@ -18,9 +20,10 @@ const AVATARS = [
   { initials: "S", bg: "#B85F00" },
 ];
 
-export default function Hero({ onBookClick, rating, reviewCount }: HeroProps) {
+export default function Hero({ onBookClick, rating, reviewCount, participants }: HeroProps) {
   const { lang } = useLang();
   const t = T[lang].hero;
+  const dc = T[lang].danceChallenge;
 
   // Split title on "SUP" to apply accent span
   const [titleBefore, titleAfter] = t.title.split("SUP");
@@ -84,6 +87,11 @@ export default function Hero({ onBookClick, rating, reviewCount }: HeroProps) {
                 <span className="hero__proof-muted">{t.proofReviews(reviewCount)}</span>
               </span>
               <span className="hero__proof-muted">{t.proofPaddlers}</span>
+              {isCampaignActive() && (
+                <span className="hero__proof-muted" style={{ color: "var(--campaign-accent)", fontWeight: 500 }}>
+                  {dc.proofLine(participants)}
+                </span>
+              )}
             </div>
           </div>
         </div>

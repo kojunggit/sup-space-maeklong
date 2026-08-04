@@ -28,8 +28,10 @@ interface ServiceCardProps {
 
 function ServiceCard({ eyebrow, title, desc, bullets, accent, img, badge, href, linkText }: ServiceCardProps) {
   const [hover, setHover] = useState(false);
+  const Container = href ? "a" : "div";
   return (
-    <div
+    <Container
+      {...(href ? { href } : {})}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -38,6 +40,8 @@ function ServiceCard({ eyebrow, title, desc, bullets, accent, img, badge, href, 
         transform: hover ? "translateY(-3px)" : "translateY(0)",
         transition: "all 240ms var(--ease-out)",
         display: "flex", flexDirection: "column",
+        textDecoration: "none", color: "inherit",
+        cursor: href ? "pointer" : "default",
       }}
     >
       <div style={{ height: 4, background: accent }} />
@@ -59,22 +63,21 @@ function ServiceCard({ eyebrow, title, desc, bullets, accent, img, badge, href, 
           ))}
         </ul>
         {href && (
-          <a
-            href={href}
+          // The whole card is already the <a> — this is just a visual cue,
+          // not a nested link (nested <a> tags are invalid HTML).
+          <span
             style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
+              display: "inline-flex", alignItems: "center", gap: hover ? 10 : 6,
               marginTop: 16, fontFamily: "var(--font-kanit)", fontSize: 13, fontWeight: 500,
-              color: accent, textDecoration: "none", letterSpacing: "0.02em",
+              color: accent, letterSpacing: "0.02em",
               transition: "gap 160ms ease",
             }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.gap = "10px"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.gap = "6px"; }}
           >
             {linkText ?? "ดูเส้นทางทั้งหมด"} <span style={{ fontSize: 15 }}>→</span>
-          </a>
+          </span>
         )}
       </div>
-    </div>
+    </Container>
   );
 }
 

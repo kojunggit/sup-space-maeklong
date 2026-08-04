@@ -1,4 +1,5 @@
 import { getGalleryPhotos } from "@/app/actions/gallery";
+import { getCampaignStats } from "@/app/actions/campaign";
 import GalleryPageClient from "./GalleryPageClient";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,6 @@ export const metadata = {
 };
 
 export default async function GalleryPage() {
-  const photos = await getGalleryPhotos();
-  return <GalleryPageClient photos={photos} />;
+  const [photos, campaignStats] = await Promise.all([getGalleryPhotos(), getCampaignStats()]);
+  return <GalleryPageClient photos={photos} campaignStats={campaignStats} />;
 }

@@ -20,9 +20,9 @@ export default async function DashboardPage() {
     .slice(0, 5);
 
   return (
-    <div style={{ padding: "24px" }}>
+    <div className="p-4 md:p-6">
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12, marginBottom: 28 }}>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3 mb-6 md:mb-7">
         <StatCard label="วันนี้"      value={String(todayCount)}            sub="การจองใหม่"    color="var(--fg-1)" />
         <StatCard label="รอยืนยัน"   value={String(pending)}               sub="รายการ"        color="#D46B08" />
         <StatCard label="ยืนยันแล้ว" value={String(confirmed)}             sub="รายการ"        color="#389E0D" />
@@ -88,12 +88,12 @@ export default async function DashboardPage() {
 
 function StatCard({ label, value, sub, color }: { label: string; value: string; sub: string; color: string }) {
   return (
-    <div style={{
-      background: "#fff", borderRadius: 12, padding: "16px 18px",
-      boxShadow: "var(--shadow-sm)", border: "1px solid var(--border-1)",
-    }}>
+    <div
+      className="bg-white rounded-xl px-3.5 py-3 md:px-[18px] md:py-4"
+      style={{ boxShadow: "var(--shadow-sm)", border: "1px solid var(--border-1)" }}
+    >
       <div style={{ fontSize: 11, color: "var(--fg-3)", marginBottom: 4, fontWeight: 500 }}>{label}</div>
-      <div style={{ fontFamily: "var(--font-inter)", fontSize: 28, fontWeight: 700, color, lineHeight: 1.1 }}>{value}</div>
+      <div className="font-inter font-bold leading-[1.1] text-[22px] md:text-[28px]" style={{ color }}>{value}</div>
       <div style={{ fontSize: 11, color: "var(--fg-4)", marginTop: 2 }}>{sub}</div>
     </div>
   );

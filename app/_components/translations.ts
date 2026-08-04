@@ -96,12 +96,13 @@ export interface Translations {
     channelPlaceholders: string[];
     pickupLabel: string; pickupNote: string; pickupPlaceholder: string;
     notesLabel: string; notesPlaceholder: string;
+    promoLabel: string; promoNote: string; promoPlaceholder: string;
     // Photo
     photoLabel: string; photoExplain: string;
     photoOpts: Array<{ label: string; sub: string; badge?: string; minPeople?: string }>;
     // Summary
     summaryTitle: string;
-    sumDate: string; sumTime: string; sumRoute: string; sumBoards: string;
+    sumDate: string; sumTime: string; sumRoute: string; sumBoards: string; sumPromo: string;
     sumPhoto: string; sumTotal: string;
     // Nav
     back: string; next: string; confirm: string; joinConfirm: string;
@@ -127,6 +128,44 @@ export interface Translations {
     yearOffset: number;
     formatTime: (slot: string) => string;
   };
+  danceChallenge: {
+    navLabel: string;
+    barText: (remaining: number) => string;
+    barCta: string;
+    ribbonHeading: string;
+    ribbonSlots: (remaining: number) => string;
+    joinCta: string;
+    countdownDays: string; countdownHours: string; countdownMinutes: string; countdownSeconds: string;
+    countdownEnded: string;
+    proofLine: (count: number) => string;
+    footerLink: string;
+    // Join form (modal)
+    joinFormTitle: string;
+    joinFormIntro: string;
+    joinFormNameLabel: string; joinFormNamePlaceholder: string;
+    joinFormPhoneLabel: string; joinFormPhonePlaceholder: string;
+    joinFormClipLabel: string; joinFormClipPlaceholder: string;
+    joinFormSubmit: string; joinFormSubmitting: string;
+    joinFormClose: string;
+    joinFormSuccessTitle: string; joinFormSuccessBody: string;
+    joinFormErrorGeneric: string;
+    // /dance-challenge page
+    pageHeroBadge: string;
+    pageHeroHeading: string;
+    pageHeroSub: string;
+    listenHeading: string;
+    listenCta: string;
+    stepsHeading: string;
+    steps: string[];
+    videoHeading: string;
+    videoCaption: string;
+    rewardsHeading: string;
+    rewardATitle: string; rewardABody: string; rewardABadge: string;
+    rewardBTitle: string; rewardBBody: string; rewardBBadge: string;
+    rulesLinkText: string;
+    faqHeading: string;
+    faq: Array<{ q: string; a: string }>;
+  };
 }
 
 const th: Translations = {
@@ -146,10 +185,10 @@ const th: Translations = {
   services: {
     eyebrow: "บริการของเรา",
     title: { pre: "มากกว่าให้", accent: "เช่าบอร์ด", post: "" },
-    sub: "สี่อย่างที่เราทำได้ดี · ทัวร์ไกด์พร้อม 13 เส้นทาง · สอนพายฟรี · ถ่ายภาพ · รับ-ส่งถึงที่พัก",
+    sub: "สี่อย่างที่เราทำได้ดี · ทริปพายพร้อม 14 เส้นทาง · สอนพายฟรี · ถ่ายภาพ · รับ-ส่งถึงที่พัก",
     priceCta: "ดูราคาทั้งหมด",
     cards: [
-      { eyebrow: "ทัวร์ไกด์", title: "13 เส้นทางพาย", desc: "สั้น กลาง ไกล · กาแฟริมคลอง · ตลาดน้ำในตำนาน · 3 ตลาดน้ำ 25 กม · ทีมเรารู้น้ำขึ้นน้ำลง และจุดถ่ายภาพดีที่สุด", bullets: ["ระยะใกล้ ฿500/บอร์ด · 2 ชม", "ระยะกลาง ฿700–750", "ระยะไกล ฿900 · 16–25 กม"], linkText: "ดูเส้นทางทั้งหมด" },
+      { eyebrow: "ทริปพาย", title: "14 เส้นทางพาย", desc: "สั้น กลาง ไกล · กาแฟริมคลอง · ตลาดน้ำในตำนาน · 3 ตลาดน้ำ 25 กม · ทีมเรารู้น้ำขึ้นน้ำลง และจุดถ่ายภาพดีที่สุด", bullets: ["ระยะใกล้ ฿500/บอร์ด · 2 ชม", "ระยะกลาง ฿700–750", "ระยะไกล ฿900 · 16–25 กม"], linkText: "ดูเส้นทางทั้งหมด" },
       { eyebrow: "มือใหม่ ฟรี!", title: "สอนพายเบื้องต้น", desc: "ครั้งแรกเลย? เราสอนพื้นฐานให้ก่อนลงน้ำเสมอ · ทรงตัว · พาย · เลี้ยว · ฟรีไม่มีค่าใช้จ่ายเพิ่ม", bullets: ["บรีฟความปลอดภัย", "ฝึกบนฝั่งก่อนลงน้ำ", "เสื้อชูชีพทุกคน"] },
       { eyebrow: "เก็บความทรงจำ", title: "ทีมถ่ายภาพ", desc: "เราถ่ายให้ฟรีสำหรับลง Social media · ถ้าอยากเก็บส่วนตัว มีบริการ private +฿500/คน", bullets: ["ฟรี: ภาพประชาสัมพันธ์", "ส่งทาง LINE", "Private +฿500/คน (ขั้นต่ำ 2 คน)"], badge: "ยอดนิยม" },
       { eyebrow: "สะดวกถึงประตู", title: "รับ-ส่งถึงที่พัก", desc: "ในรัศมี 5 กิโลเมตรจาก SUP Space Maeklong เรารับ-ส่งฟรี · เกินกว่านั้นคิดกิโลเมตรละ 7 บาท", bullets: ["ใน 5 กม · ฟรี", "เกิน 5 กม · 7฿/กม", "ไม่ต้องห่วงเรื่องที่จอด"] },
@@ -215,8 +254,8 @@ const th: Translations = {
   routesPage: {
     navHome: "← หน้าหลัก", navBook: "จองทริปเลย →",
     badge: "SUP Space Maeklong · แม่กลอง สมุทรสงคราม",
-    titlePre: "13 เส้นทาง", titleAccent: "พายซับ", titleSub: "ริมแม่กลอง · สมุทรสงคราม",
-    intro: "สั้น กลาง ไกล — ตั้งแต่กาแฟริมคลองเม็ง ไปจนถึงผจญภัย 3 ตลาดน้ำ 25 กม มือใหม่ก็พายได้ · ทีมไกด์รู้น้ำขึ้นน้ำลง · รวมถ่ายภาพ",
+    titlePre: "14 เส้นทาง", titleAccent: "พายซับ", titleSub: "ริมแม่กลอง · สมุทรสงคราม",
+    intro: "สั้น กลาง ไกล — ตั้งแต่กาแฟริมคลองเม็ง ไปจนถึงผจญภัย 3 ตลาดน้ำ 25 กม มือใหม่ก็พายได้ · ทีมเรารู้น้ำขึ้นน้ำลง · รวมถ่ายภาพ",
     catJumpPrefix: "ระยะ",
     catEyebrowPrefix: "ทริประยะ", catEyebrowSuffix: "",
     routeCount: (n) => `${n} เส้นทาง`,
@@ -287,6 +326,8 @@ const th: Translations = {
     pickupLabel: "ที่อยู่รับ-ส่ง", pickupNote: "ถ้าต้องการบริการ · ใน 5 กม ฟรี",
     pickupPlaceholder: "บ้านเลขที่ / ชื่อโรงแรม / สถานที่",
     notesLabel: "หมายเหตุเพิ่มเติม", notesPlaceholder: "เช่น มีเด็กเล็ก มีผู้สูงอายุ ความต้องการพิเศษ ฯลฯ",
+    promoLabel: "โค้ดโปรโมชัน / รหัสสิทธิ์", promoNote: "ถ้ามี",
+    promoPlaceholder: "เช่น รหัสยืนยันสิทธิ์จาก LINE OA",
     photoLabel: "การถ่ายภาพ",
     photoExplain: "การอนุญาตหมายถึงให้สิทธิ์กับทาง Sup Space Maeklong นำภาพไปเผยแพร่ในสื่อ social ได้ และลูกค้าจะได้รับภาพที่ถ่ายเป็นที่ระลึก แต่ถ้าลูกค้าไม่ต้องการให้เผยแพร่ภาพในสื่อแต่ต้องการรูป สามารถเลือกเป็น Private ได้ โดยมีค่าใช้จ่าย 500 บาท",
     photoOpts: [
@@ -296,7 +337,7 @@ const th: Translations = {
     ],
     summaryTitle: "สรุปการจอง",
     sumDate: "วันที่", sumTime: "เวลา", sumRoute: "เส้นทาง",
-    sumBoards: "ผู้พาย", sumPhoto: "ถ่ายภาพ", sumTotal: "รวมทั้งหมด",
+    sumBoards: "ผู้พาย", sumPhoto: "ถ่ายภาพ", sumPromo: "โค้ดโปรโมชัน", sumTotal: "รวมทั้งหมด",
     back: "← ย้อน", next: "ต่อไป →", confirm: "ยืนยันการจอง", joinConfirm: "ร่วมทริปเลย",
     submitting: "กำลังส่ง...", totalLabel: "รวม",
     chip1: "ยกเลิกฟรี 24 ชม.", chip2: "ไม่ต้องใช้บัตรเครดิต", chip3: "จ่ายหน้างาน", chip4: "ภาษาไทย & EN",
@@ -323,6 +364,56 @@ const th: Translations = {
       return `${slot} น.`;
     },
   },
+  danceChallenge: {
+    navLabel: "🎉 Dance Challenge",
+    barText: (remaining) => `🎶 ท้าเต้นท่าพาย พาย พาย ลง TikTok รับสิทธิ์พาย SUP ฟรี! เหลือ ${remaining}/30 สิทธิ์ · ปิดรับ 15 ส.ค. นี้`,
+    barCta: "ร่วมเลย",
+    ribbonHeading: "พาย พาย พาย Dance Challenge 💃🏄",
+    ribbonSlots: (remaining) => `เหลือสิทธิ์ ${remaining}/30`,
+    joinCta: "ร่วมกิจกรรมเลย",
+    countdownDays: "วัน", countdownHours: "ชม.", countdownMinutes: "นาที", countdownSeconds: "วิ",
+    countdownEnded: "ปิดรับสมัครแล้ว",
+    proofLine: (count) => `🎉 มีผู้ร่วม Dance Challenge แล้ว ${count} คน`,
+    joinFormTitle: "ร่วมกิจกรรม Dance Challenge",
+    joinFormIntro: "กรอกข้อมูลเพื่อยืนยันการเข้าร่วม ทีมงานจะตรวจสอบคลิปของคุณภายใน 1–3 วันทำการ",
+    joinFormNameLabel: "ชื่อ-นามสกุล", joinFormNamePlaceholder: "ชื่อ นามสกุล",
+    joinFormPhoneLabel: "เบอร์โทรศัพท์", joinFormPhonePlaceholder: "083 111 1111",
+    joinFormClipLabel: "ลิงก์คลิปที่เต้น", joinFormClipPlaceholder: "https://www.tiktok.com/...",
+    joinFormSubmit: "ส่งข้อมูลเข้าร่วม", joinFormSubmitting: "กำลังส่ง...",
+    joinFormClose: "ปิด",
+    joinFormSuccessTitle: "รับข้อมูลเรียบร้อย!",
+    joinFormSuccessBody: "ทีมงานจะตรวจสอบคลิปของคุณและยืนยันสิทธิ์กลับทาง LINE OA ภายใน 1–3 วันทำการ",
+    joinFormErrorGeneric: "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
+    footerLink: "กติกากิจกรรม Dance Challenge",
+    pageHeroBadge: "แคมเปญพิเศษ · 14 ก.ค. – 15 ส.ค. 2569",
+    pageHeroHeading: "พาย พาย พาย Dance Challenge 💃🏄",
+    pageHeroSub: "เต้นท่าพายง่าย ๆ ถ่ายคลิปลง TikTok/Reels รับสิทธิ์พาย SUP ฟรี และลุ้นรางวัลใหญ่",
+    listenHeading: "ฟังเพลงต้นฉบับ",
+    listenCta: "🎧 ฟังเพลง พาย พาย พาย",
+    stepsHeading: "ร่วมสนุกใน 4 ขั้นตอน",
+    steps: [
+      "ฟังเพลง + ดูท่าเต้นตัวอย่าง",
+      "ถ่ายคลิปเต้นตาม เต้นช่วงไหนของเพลงก็ได้ แต่คลิปต้องมีความยาวอย่างน้อย 30 วินาที",
+      "โพสต์ลง TikTok (หลัก) หรือ IG Reels (รอง) พร้อมแฮชแท็ก #dancechallenge และ #supspacemaeklong แท็ก @SUPSpaceMaeklong และตั้งโพสต์เป็นสาธารณะ",
+      "กดปุ่ม \"ร่วมกิจกรรม\" บนหน้านี้ กรอกชื่อ-นามสกุล เบอร์โทรศัพท์ และลิงก์คลิปที่โพสต์ เพื่อยืนยันการเข้าร่วม",
+    ],
+    videoHeading: "ท่าเต้นตัวอย่าง",
+    videoCaption: "ท่าเต้น 4 จังหวะ ง่าย ๆ ไม่ต้องเก่งเต้น: พายขวา – พายซ้าย – พายซ่า – ชี้กล้อง ทำซ้ำ 3 รอบ ประมาณ 15-20 วินาที",
+    rewardsHeading: "รางวัลของกิจกรรม",
+    rewardATitle: "สิทธิ์พายฟรี",
+    rewardABody: "1 ทริปฟรี ต่อผู้เข้าร่วมที่ผ่านเงื่อนไข",
+    rewardABadge: "จำกัด 30 สิทธิ์แรกเท่านั้น",
+    rewardBTitle: "รางวัลใหญ่ 🏆",
+    rewardBBody: "พาย SUP ฟรีทั้งกลุ่ม (สูงสุด 7 คน) + เงินโอนค่าเดินทาง 2,000 บาท",
+    rewardBBadge: "จับรางวัล 1 รางวัล จากผู้เข้าร่วมที่ผ่านเงื่อนไขทั้งหมด",
+    rulesLinkText: "ดูกติกากิจกรรมฉบับเต็ม",
+    faqHeading: "คำถามที่พบบ่อย",
+    faq: [
+      { q: "ต้องเต้นเก่งไหม?", a: "ไม่ต้อง — ขอแค่ทำตามท่าหลักและสนุกไปกับมัน" },
+      { q: "ต้องโพสต์สาธารณะไหม?", a: "ต้อง — คลิปต้องตั้งค่าเป็นสาธารณะจนกว่าจะประกาศผลรางวัลใหญ่" },
+      { q: "ใช้สิทธิ์ยังไง?", a: "ดูขั้นตอนและเงื่อนไขทั้งหมดได้ที่หน้ากติกากิจกรรม" },
+    ],
+  },
 };
 
 const en: Translations = {
@@ -334,7 +425,7 @@ const en: Translations = {
     badge: "Maeklong · Samut Songkhram",
     title: "Paddle SUP through floating markets and Maeklong's canal life",
     subtitle: "Experience the charm of Samut Songkhram from a unique perspective — through floating markets, coconut palm gardens, and ancient riverside communities",
-    trust: ["Beginner-friendly", "1.5h from Bangkok", "Guided throughout", "Photos included", "Safety equipment"],
+    trust: ["Beginner-friendly", "1.5h from Bangkok", "Support throughout", "Photos included", "Safety equipment"],
     ctaPrimary: "Book a Trip", ctaSecondary: "View Routes",
     proofReviews: (n) => `from ${n.toLocaleString()} Google reviews`,
     proofPaddlers: "Over 1,200 paddlers have joined us",
@@ -342,10 +433,10 @@ const en: Translations = {
   services: {
     eyebrow: "Our Services",
     title: { pre: "More than just ", accent: "board rental", post: "" },
-    sub: "Four things we do best · 13 guided routes · free paddling lesson · photography · hotel transfers",
+    sub: "Four things we do best · 14 routes with hands-on support · free paddling lesson · photography · hotel transfers",
     priceCta: "View pricing",
     cards: [
-      { eyebrow: "Guided Tours", title: "13 Paddling Routes", desc: "Short, medium & long · canal coffee stops · legendary floating markets · 3 markets over 25 km · our team knows the tides and best photo spots", bullets: ["Short route ฿500/board · 2 hrs", "Medium route ฿700–750", "Long route ฿900 · 16–25 km"], linkText: "View all routes" },
+      { eyebrow: "Paddle Trips", title: "14 Paddling Routes", desc: "Short, medium & long · canal coffee stops · legendary floating markets · 3 markets over 25 km · our team knows the tides and best photo spots", bullets: ["Short route ฿500/board · 2 hrs", "Medium route ฿700–750", "Long route ฿900 · 16–25 km"], linkText: "View all routes" },
       { eyebrow: "Beginners Free!", title: "Basic Paddling Lesson", desc: "First time ever? We always teach you the basics before getting on the water · Balance · Paddle · Turn · Completely free, no extra charge", bullets: ["Safety briefing", "Practice on land first", "Life jacket for everyone"] },
       { eyebrow: "Capture Memories", title: "Photography Team", desc: "We shoot for free for social media · For private-use photos add ฿500/person", bullets: ["Free: promotional shots", "Sent via LINE", "Private +฿500/person (min. 2 people)"], badge: "Most Popular" },
       { eyebrow: "Door-to-Door", title: "Hotel Transfer", desc: "Within 5 km of SUP Space Maeklong we pick up & drop off for free · Beyond that ฿7/km", bullets: ["Within 5 km · Free", "Over 5 km · ฿7/km", "No need to worry about parking"] },
@@ -411,8 +502,8 @@ const en: Translations = {
   routesPage: {
     navHome: "← Home", navBook: "Book a Trip →",
     badge: "SUP Space Maeklong · Maeklong, Samut Songkhram",
-    titlePre: "13 SUP", titleAccent: "Paddling Routes", titleSub: "along the Maeklong River · Samut Songkhram",
-    intro: "Short, medium & long — from canal-side coffee on Khlong Meng to a 25 km, 3-floating-market adventure. Beginner-friendly · our guides know the tides · photos included",
+    titlePre: "14 SUP", titleAccent: "Paddling Routes", titleSub: "along the Maeklong River · Samut Songkhram",
+    intro: "Short, medium & long — from canal-side coffee on Khlong Meng to a 25 km, 3-floating-market adventure. Beginner-friendly · our team knows the tides · photos included",
     catJumpPrefix: "",
     catEyebrowPrefix: "", catEyebrowSuffix: " routes",
     routeCount: (n) => `${n} route${n > 1 ? "s" : ""}`,
@@ -483,6 +574,8 @@ const en: Translations = {
     pickupLabel: "Pickup address", pickupNote: "optional · free within 5 km",
     pickupPlaceholder: "Hotel name or address",
     notesLabel: "Additional notes", notesPlaceholder: "e.g. young children, elderly, special requirements…",
+    promoLabel: "Promo code / redemption code", promoNote: "optional",
+    promoPlaceholder: "e.g. confirmation code from LINE OA",
     photoLabel: "Photography",
     photoExplain: "Allowing photos means SUP Space Maeklong may share them on social media — and you'll receive the photos as a keepsake. If you'd prefer to keep them private and not have them posted, choose Private for an additional ฿500.",
     photoOpts: [
@@ -492,7 +585,7 @@ const en: Translations = {
     ],
     summaryTitle: "Booking Summary",
     sumDate: "Date", sumTime: "Time", sumRoute: "Route",
-    sumBoards: "Boards", sumPhoto: "Photos", sumTotal: "Total",
+    sumBoards: "Boards", sumPhoto: "Photos", sumPromo: "Promo code", sumTotal: "Total",
     back: "← Back", next: "Next →", confirm: "Confirm Booking", joinConfirm: "Join this trip",
     submitting: "Sending…", totalLabel: "Total",
     chip1: "Cancel free 24h", chip2: "No credit card", chip3: "Pay on site", chip4: "Thai & English",
@@ -518,6 +611,56 @@ const en: Translations = {
       if (slot === "AFTERNOON") return "Afternoon session";
       return slot;
     },
+  },
+  danceChallenge: {
+    navLabel: "🎉 Dance Challenge",
+    barText: (remaining) => `🎶 Dance the "Pai Pai Pai" move on TikTok for a free SUP trip! ${remaining}/30 spots left · closes Aug 15`,
+    barCta: "Join now",
+    ribbonHeading: "Pai Pai Pai Dance Challenge 💃🏄",
+    ribbonSlots: (remaining) => `${remaining}/30 spots left`,
+    joinCta: "Join the challenge",
+    countdownDays: "days", countdownHours: "hrs", countdownMinutes: "min", countdownSeconds: "sec",
+    countdownEnded: "Entries closed",
+    proofLine: (count) => `🎉 ${count} people have joined the Dance Challenge`,
+    joinFormTitle: "Join the Dance Challenge",
+    joinFormIntro: "Fill in your details to confirm your entry. Our team will review your clip within 1–3 business days.",
+    joinFormNameLabel: "Full name", joinFormNamePlaceholder: "First Last",
+    joinFormPhoneLabel: "Phone number", joinFormPhonePlaceholder: "083 111 1111",
+    joinFormClipLabel: "Link to your dance clip", joinFormClipPlaceholder: "https://www.tiktok.com/...",
+    joinFormSubmit: "Submit entry", joinFormSubmitting: "Submitting...",
+    joinFormClose: "Close",
+    joinFormSuccessTitle: "Entry received!",
+    joinFormSuccessBody: "Our team will review your clip and confirm your reward via LINE OA within 1–3 business days.",
+    joinFormErrorGeneric: "Something went wrong. Please try again.",
+    footerLink: "Dance Challenge Rules",
+    pageHeroBadge: "Limited campaign · Jul 14 – Aug 15, 2026",
+    pageHeroHeading: "Pai Pai Pai Dance Challenge 💃🏄",
+    pageHeroSub: "Dance a simple paddle-themed move, post it on TikTok/Reels, earn a free SUP trip, and enter the grand-prize draw",
+    listenHeading: "Listen to the song",
+    listenCta: "🎧 Listen to \"Pai Pai Pai\"",
+    stepsHeading: "How to join in 4 steps",
+    steps: [
+      "Listen to the song + watch the sample dance",
+      "Film your own dance clip — dance to any part of the song, but the clip must be at least 30 seconds long",
+      "Post on TikTok (primary) or IG Reels (secondary) with #dancechallenge and #supspacemaeklong, tag @SUPSpaceMaeklong, and set the post to public",
+      "Click the \"Join\" button on this page and submit your name, phone number, and video link to confirm entry",
+    ],
+    videoHeading: "Reference dance video",
+    videoCaption: "A simple 4-count routine, no dance skill required: paddle right – paddle left – big splash – point at camera. Repeat 3x, ~15–20 seconds.",
+    rewardsHeading: "Rewards",
+    rewardATitle: "Free paddle trip",
+    rewardABody: "1 free trip per qualifying participant",
+    rewardABadge: "First 30 spots only",
+    rewardBTitle: "Grand prize 🏆",
+    rewardBBody: "Free SUP trip for your whole group (up to 7 people) + 2,000 THB travel allowance",
+    rewardBBadge: "1 winner drawn from all qualifying entries",
+    rulesLinkText: "View full rules",
+    faqHeading: "FAQ",
+    faq: [
+      { q: "Do I need to be a good dancer?", a: "No — just follow the main move and have fun" },
+      { q: "Does my post need to be public?", a: "Yes — it must stay public until the grand prize is announced" },
+      { q: "How do I redeem my reward?", a: "See the full rules page for the redemption steps" },
+    ],
   },
 };
 

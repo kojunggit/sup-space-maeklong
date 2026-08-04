@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useLang } from "./lang-context";
 import { T } from "./translations";
+import { isCampaignActive } from "./campaign-config";
 
 const muted: React.CSSProperties = { fontFamily: "var(--font-kanit)", fontWeight: 300, margin: "6px 0", fontSize: 14, color: "rgba(255,255,255,0.78)", lineHeight: 1.6 };
 
@@ -86,6 +87,14 @@ export default function Footer() {
           flexWrap: "wrap", gap: 12,
         }}>
           <span>{t.copyright}</span>
+          <a href="/privacy" style={{ color: "rgba(255,255,255,0.55)", textDecoration: "underline" }}>
+            {lang === "th" ? "นโยบายความเป็นส่วนตัว" : "Privacy Policy"}
+          </a>
+          {isCampaignActive() && (
+            <a href="/dance-challenge/rules" style={{ color: "rgba(255,255,255,0.55)", textDecoration: "underline" }}>
+              {T[lang].danceChallenge.footerLink}
+            </a>
+          )}
           <span style={{ color: "var(--sup-orange)", fontWeight: 400 }}>{t.footerLine}</span>
         </div>
       </div>

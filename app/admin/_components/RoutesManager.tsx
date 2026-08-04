@@ -27,9 +27,9 @@ const EMPTY_FORM: RouteFormData = {
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    <div className={className} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       <label style={{ fontSize: 12, fontWeight: 600, color: "var(--fg-3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</label>
       {children}
     </div>
@@ -65,7 +65,14 @@ function RouteForm({
     e.preventDefault();
     if (!form.name.trim()) return alert("กรุณากรอกชื่อเส้นทาง (ภาษาไทย)");
     setSaving(true);
-    try { await onSave(form); } finally { setSaving(false); }
+    try {
+      await onSave(form);
+    } catch (err) {
+      console.error("Route save failed:", err);
+      alert("บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const tabBtn = (t: "th" | "en") => ({
@@ -77,14 +84,14 @@ function RouteForm({
 
   return (
     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Basic info */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 100px 100px 100px", gap: 12 }}>
-        <Field label="Category">
+      {/* Basic info — mobile: 2 full-width fields + 3 numbers in a row; desktop: single row */}
+      <div className="grid grid-cols-6 gap-3 md:[grid-template-columns:1fr_1fr_100px_100px_100px]">
+        <Field label="Category" className="col-span-6 md:col-span-1">
           <select value={form.cat} onChange={(e) => set("cat", e.target.value)} style={inputStyle}>
             {CATS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
         </Field>
-        <Field label={isNew ? "Route ID (slug)" : "Route ID"}>
+        <Field label={isNew ? "Route ID (slug)" : "Route ID"} className="col-span-6 md:col-span-1">
           <input
             style={{ ...inputStyle, background: isNew ? "#fff" : "var(--sand-50)", color: isNew ? "var(--fg-1)" : "var(--fg-3)" }}
             value={form.id} onChange={(e) => set("id", e.target.value)}
@@ -92,13 +99,13 @@ function RouteForm({
             readOnly={!isNew}
           />
         </Field>
-        <Field label="ระยะ (กม)">
+        <Field label="ระยะ (กม)" className="col-span-2 md:col-span-1">
           <input type="number" step="0.1" min="0" style={inputStyle} value={form.km} onChange={(e) => set("km", parseFloat(e.target.value) || 0)} />
         </Field>
-        <Field label="ราคา (฿)">
+        <Field label="ราคา (฿)" className="col-span-2 md:col-span-1">
           <input type="number" step="50" min="0" style={inputStyle} value={form.price} onChange={(e) => set("price", parseInt(e.target.value) || 0)} />
         </Field>
-        <Field label="ระยะเวลา (ชม)">
+        <Field label="ระยะเวลา (ชม)" className="col-span-2 md:col-span-1">
           <input type="number" step="0.5" min="1" style={inputStyle} value={form.duration} onChange={(e) => set("duration", parseFloat(e.target.value) || 2)} />
         </Field>
       </div>
@@ -284,7 +291,7 @@ function RouteRow({
 
   return (
     <div style={{ background: "#fff", borderRadius: 10, border: "1px solid var(--border-1)", overflow: "hidden", marginBottom: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px" }}>
+      <div className="flex flex-wrap items-center gap-3 p-3 md:px-4 md:py-3.5">
         <div style={{ width: 4, alignSelf: "stretch", background: catColor, borderRadius: 2, flexShrink: 0 }} />
 
         {/* Cover photo thumbnail */}
@@ -308,7 +315,7 @@ function RouteRow({
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+        <div className="flex gap-2 shrink-0 w-full justify-end sm:w-auto">
           <button
             onClick={() => setShowPhotos((p) => !p)}
             style={{ padding: "6px 12px", borderRadius: 7, border: "1px solid var(--border-2)", cursor: "pointer", background: showPhotos ? "var(--sand-100)" : "#fff", fontSize: 12, fontFamily: "var(--font-kanit)", color: "var(--fg-2)" }}
@@ -375,7 +382,7 @@ export default function RoutesManager({ initialRoutes }: { initialRoutes: DBRout
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 960, margin: "0 auto" }}>
+    <div className="p-4 md:p-6 max-w-[960px] mx-auto">
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, gap: 16, flexWrap: "wrap" }}>
@@ -397,7 +404,7 @@ export default function RoutesManager({ initialRoutes }: { initialRoutes: DBRout
 
       {/* Add form */}
       {mode === "add" && (
-        <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--border-1)", padding: 24, marginBottom: 24 }}>
+        <div className="p-4 md:p-6" style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--border-1)", marginBottom: 24 }}>
           <h3 style={{ margin: "0 0 20px", fontFamily: "var(--font-kanit)", fontSize: 17, fontWeight: 700 }}>เพิ่มเส้นทางใหม่</h3>
           <RouteForm
             initial={EMPTY_FORM}
@@ -410,10 +417,10 @@ export default function RoutesManager({ initialRoutes }: { initialRoutes: DBRout
 
       {/* Edit form */}
       {mode === "edit" && editing && (
-        <div style={{ background: "#fff", borderRadius: 12, border: "2px solid var(--sup-teal)", padding: 24, marginBottom: 24 }}>
+        <div className="p-4 md:p-6" style={{ background: "#fff", borderRadius: 12, border: "2px solid var(--sup-teal)", marginBottom: 24 }}>
           <h3 style={{ margin: "0 0 20px", fontFamily: "var(--font-kanit)", fontSize: 17, fontWeight: 700 }}>แก้ไข: {editing.name}</h3>
           <RouteForm
-            initial={{ ...editing }}
+            initial={(({ photos, order, ...rest }) => rest)(editing)}
             isNew={false}
             onSave={handleUpdate}
             onCancel={() => { setMode("list"); setEditing(null); }}

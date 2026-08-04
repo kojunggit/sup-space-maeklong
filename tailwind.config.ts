@@ -1,6 +1,8 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  // Preflight (global reset) ปิดไว้ — CSS หน้า public เขียนโดยไม่มี reset มาตั้งแต่ต้น
+  corePlugins: { preflight: false },
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",

@@ -162,14 +162,11 @@ export default function GalleryManager({ initialPhotos }: { initialPhotos: Galle
         </form>
       </div>
 
-      {/* Photo grid */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-        gap: 14,
-        opacity: isPending ? 0.6 : 1,
-        transition: "opacity 200ms",
-      }}>
+      {/* Photo grid — 2 cols on phones, wider cards from sm up */}
+      <div
+        className="grid grid-cols-2 gap-2.5 md:gap-3.5 sm:[grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]"
+        style={{ opacity: isPending ? 0.6 : 1, transition: "opacity 200ms" }}
+      >
         {photos.map((p, idx) => (
           <div key={p.id} style={{
             background: "#fff", borderRadius: 12, border: "1px solid var(--border-1)",

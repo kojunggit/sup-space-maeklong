@@ -3,153 +3,24 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/app/lib/prisma";
 import { assertAdmin } from "@/app/lib/auth";
-import { isHourClosed, type ClosedSlotShape } from "@/app/_components/trips-data";
-import { sendTelegramNotification, buildBookingMessage } from "@/app/lib/telegram-notify";
-import { readTelegramConfig } from "@/app/lib/telegram-config";
-import { sendBookingConfirmationEmail } from "@/app/lib/email-notify";
 import { getActiveSpecialTrips } from "@/app/actions/special-trips";
 import type { UpcomingTrip } from "@/app/_components/trips-data";
+import {
+  createBookingRecord,
+  type BookingPayload,
+  type BookingResult,
+} from "@/app/lib/booking-core";
+import {
+  CLOSED_TRIPS_SETTING_KEY,
+  parseClosedTripKeys,
+  regularTripKey,
+  specialTripKey,
+} from "@/app/lib/trip-closure";
 
-/** Parse "09:00" → 9. Returns null for legacy "MORNING"/"AFTERNOON". */
-function parseHour(slot: string): number | null {
-  const n = parseInt(slot.split(":")[0], 10);
-  return isNaN(n) ? null : n;
-}
-
-// ─── Booking creation ─────────────────────────────────────────────────────────
-
-export interface BookingPayload {
-  date: string;
-  dateIso?: string;  // ISO "2026-05-23" — for filtering upcoming trips
-  timeSlot: string;
-  routeId: string;
-  paddlers: number;
-  photoPermission: string;
-  total: number;
-  guestName: string;
-  guestPhone: string;
-  guestEmail?: string;
-  contactChannel?: string;
-  contactId?: string;
-  pickupAddress?: string;
-  notes?: string;
-  // Special trip fields
-  specialTripId?: string;
-  boardChoice?:   "rental" | "own";
-}
-
-export interface BookingResult {
-  ok: boolean;
-  id?: string;
-  error?: string;
-}
+export type { BookingPayload, BookingResult };
 
 export async function createBooking(payload: BookingPayload): Promise<BookingResult> {
-  try {
-    // ── Guard 1: no duplicate (same phone + date + time, not cancelled) ─────
-    if (payload.guestPhone && payload.dateIso) {
-      const dup = await prisma.booking.findFirst({
-        where: {
-          guestPhone: payload.guestPhone,
-          dateIso:    payload.dateIso,
-          timeSlot:   payload.timeSlot,
-          status:     { not: "CANCELLED" },
-        },
-        select: { id: true },
-      });
-      if (dup) {
-        return { ok: false, error: "คุณมีการจองในวันและเวลานี้อยู่แล้ว กรุณาตรวจสอบการจองของคุณ" };
-      }
-    }
-
-    // ── Guard 2: slot not in closed list ────────────────────────────────────
-    if (payload.dateIso) {
-      const closedRow = await prisma.setting.findUnique({ where: { key: "closedSlots" } }).catch(() => null);
-      if (closedRow) {
-        const closed = JSON.parse(closedRow.value) as ClosedSlotShape[];
-        const blocked = isHourClosed(closed, payload.dateIso, payload.timeSlot);
-        if (blocked) {
-          return { ok: false, error: "วันและเวลานี้ปิดให้บริการ กรุณาเลือกวันหรือเวลาอื่น" };
-        }
-      }
-    }
-
-    // ── Guard 3: 1 trip per slot — duration-overlap check ───────────────────
-    // Special trips bypass this guard (they have their own slot managed by admin)
-    const newStartHour = parseHour(payload.timeSlot);
-    if (!payload.specialTripId && newStartHour !== null && payload.dateIso) {
-      const newRouteRow = payload.routeId
-        ? await prisma.paddleRoute.findUnique({ where: { id: payload.routeId }, select: { duration: true } }).catch(() => null)
-        : null;
-      const newDuration = newRouteRow?.duration ?? 2;
-      // Hours the new booking would occupy: [H, H+D-1]
-      const newEnd = newStartHour + newDuration - 1;
-
-      const sameDayBookings = await prisma.booking.findMany({
-        where: {
-          dateIso: payload.dateIso,
-          status:  { not: "CANCELLED" },
-        },
-        select: { timeSlot: true, routeId: true },
-      });
-
-      // Collect unique routeIds to batch-fetch durations
-      const routeIds = [...new Set(sameDayBookings.map((b) => b.routeId).filter(Boolean) as string[])];
-      const routeRows = routeIds.length > 0
-        ? await prisma.paddleRoute.findMany({ where: { id: { in: routeIds } }, select: { id: true, duration: true } })
-        : [];
-      const durationMap = Object.fromEntries(routeRows.map((r) => [r.id, r.duration]));
-
-      for (const eb of sameDayBookings) {
-        const ebStart = parseHour(eb.timeSlot);
-        if (ebStart === null) continue; // skip legacy MORNING/AFTERNOON entries
-
-        // Same trip (join): same start + same route → allowed
-        if (ebStart === newStartHour && eb.routeId === payload.routeId) continue;
-
-        const ebDuration = (eb.routeId ? durationMap[eb.routeId] : null) ?? 2;
-        const ebEnd      = ebStart + ebDuration - 1;
-
-        // Overlap: [newStart, newEnd] ∩ [ebStart, ebEnd] is non-empty
-        if (newStartHour <= ebEnd && ebStart <= newEnd) {
-          return { ok: false, error: "ช่วงเวลานี้มีทริปอยู่แล้ว กรุณาเลือกเวลาอื่น" };
-        }
-      }
-    }
-
-    const booking = await prisma.booking.create({
-      data: {
-        date:            payload.date,
-        dateIso:         payload.dateIso || null,
-        timeSlot:        payload.timeSlot,
-        routeId:         payload.routeId   || null,
-        specialTripId:   payload.specialTripId || null,
-        boardChoice:     payload.boardChoice   || null,
-        paddlers:        payload.paddlers,
-        hasPhoto:        payload.photoPermission !== "notAllow",
-        photoPermission: payload.photoPermission,
-        total:           payload.total,
-        guestName:       payload.guestName        || null,
-        guestPhone:      payload.guestPhone       || null,
-        guestEmail:      payload.guestEmail       || null,
-        contactChannel:  payload.contactChannel   || null,
-        contactId:       payload.contactId        || null,
-        pickupAddress:   payload.pickupAddress    || null,
-        notes:           payload.notes || null,
-        status:          "PENDING",
-      },
-    });
-    const tgConfig = await readTelegramConfig();
-    if (tgConfig) {
-      void sendTelegramNotification(buildBookingMessage(booking), tgConfig.token, tgConfig.chatId);
-    }
-    void sendBookingConfirmationEmail(booking);
-    revalidatePath("/");   // refresh UpcomingTrips on home page
-    return { ok: true, id: booking.id };
-  } catch (err) {
-    console.error("createBooking error:", err);
-    return { ok: false, error: "ไม่สามารถบันทึกการจองได้ กรุณาลองใหม่อีกครั้ง" };
-  }
+  return createBookingRecord(payload);
 }
 
 // ─── Admin: read bookings ─────────────────────────────────────────────────────
@@ -160,7 +31,10 @@ export interface BookingRecord {
   dateIso: string | null;
   timeSlot: string;
   routeId: string | null;
+  routeName: string | null;
+  routeKm: number | null;
   specialTripId: string | null;
+  specialTripName: string | null;
   boardChoice: string | null;
   paddlers: number;
   weight: number | null;
@@ -174,9 +48,11 @@ export interface BookingRecord {
   contactId: string | null;
   pickupAddress: string | null;
   notes: string | null;
+  promoCode: string | null;
   total: number | null;
   status: string;
   createdAt: string;
+  tripClosed: boolean;
 }
 
 export async function getBookings(
@@ -200,9 +76,38 @@ export async function getBookings(
       where: { ...statusFilter, ...dateFilter },
       orderBy,
     });
-    return (rows as import("@prisma/client").Booking[]).map((b) => ({
+    const bookings = rows as import("@prisma/client").Booking[];
+
+    // Resolve special trip names in one extra query
+    const stIds = [...new Set(bookings.map((b) => b.specialTripId).filter(Boolean) as string[])];
+    const stRows = stIds.length > 0
+      ? await prisma.specialTrip.findMany({ where: { id: { in: stIds } }, select: { id: true, name: true } })
+      : [];
+    const stNameMap = Object.fromEntries(stRows.map((st) => [st.id, st.name]));
+
+    // Resolve route names from the DB (routes are DB-driven; the static
+    // ROUTES_BY_ID map only knows the original seed routes)
+    const routeIds = [...new Set(bookings.map((b) => b.routeId).filter(Boolean) as string[])];
+    const routeRows = routeIds.length > 0
+      ? await prisma.paddleRoute.findMany({ where: { id: { in: routeIds } }, select: { id: true, name: true, km: true } })
+      : [];
+    const routeMap = Object.fromEntries(routeRows.map((r) => [r.id, r]));
+
+    const closedTripsRow = await prisma.setting.findUnique({
+      where: { key: CLOSED_TRIPS_SETTING_KEY },
+      select: { value: true },
+    }).catch(() => null);
+    const closedTripKeys = parseClosedTripKeys(closedTripsRow?.value);
+
+    return bookings.map((b) => ({
       ...b,
       createdAt: b.createdAt.toISOString(),
+      specialTripName: b.specialTripId ? (stNameMap[b.specialTripId] ?? null) : null,
+      routeName: b.routeId ? (routeMap[b.routeId]?.name ?? null) : null,
+      routeKm:   b.routeId ? (routeMap[b.routeId]?.km ?? null) : null,
+      tripClosed: b.specialTripId
+        ? closedTripKeys.has(specialTripKey(b.specialTripId))
+        : !!(b.dateIso && b.routeId && closedTripKeys.has(regularTripKey(b.dateIso, b.timeSlot, b.routeId))),
     }));
   } catch (err) {
     console.error("getBookings error:", err);
@@ -220,8 +125,12 @@ export async function getUpcomingTrips(): Promise<UpcomingTrip[]> {
   const todayIso = new Date().toISOString().slice(0, 10);
   try {
     // Read capacity setting (default 8)
-    const settingRow = await prisma.setting.findUnique({ where: { key: "maxBoards" } }).catch(() => null);
-    const maxBoards  = settingRow ? (parseInt(settingRow.value, 10) || 8) : 8;
+    const [settingRow, closedTripsRow] = await Promise.all([
+      prisma.setting.findUnique({ where: { key: "maxBoards" } }).catch(() => null),
+      prisma.setting.findUnique({ where: { key: CLOSED_TRIPS_SETTING_KEY } }).catch(() => null),
+    ]);
+    const maxBoards = settingRow ? (parseInt(settingRow.value, 10) || 8) : 8;
+    const closedTripKeys = parseClosedTripKeys(closedTripsRow?.value);
 
     const rows = await prisma.booking.findMany({
       where: {
@@ -255,6 +164,7 @@ export async function getUpcomingTrips(): Promise<UpcomingTrip[]> {
         joined:   Math.min(joined, maxBoards),
         max:      maxBoards,
         host:     first.guestName ?? "ลูกค้า",
+        closed:   closedTripKeys.has(regularTripKey(first.dateIso!, first.timeSlot, first.routeId!)),
       });
     }
 
@@ -285,6 +195,7 @@ export async function getUpcomingTrips(): Promise<UpcomingTrip[]> {
         specialOwnBoardPrice: st.ownBoardPrice,
         specialLocation:     st.location,
         specialCoverPhoto:   st.coverPhoto ?? undefined,
+        closed:              closedTripKeys.has(specialTripKey(st.id)),
       });
     }
 
@@ -314,6 +225,36 @@ export async function updateBookingStatus(
     return { ok: true };
   } catch (err) {
     console.error("updateBookingStatus error:", err);
+    return { ok: false };
+  }
+}
+
+export async function setTripClosed(
+  tripKey: string,
+  closed: boolean,
+): Promise<{ ok: boolean }> {
+  await assertAdmin();
+  if (!tripKey.startsWith("regular|") && !tripKey.startsWith("special|")) {
+    return { ok: false };
+  }
+  try {
+    const row = await prisma.setting.findUnique({
+      where: { key: CLOSED_TRIPS_SETTING_KEY },
+      select: { value: true },
+    });
+    const keys = parseClosedTripKeys(row?.value);
+    if (closed) keys.add(tripKey);
+    else keys.delete(tripKey);
+    await prisma.setting.upsert({
+      where: { key: CLOSED_TRIPS_SETTING_KEY },
+      update: { value: JSON.stringify([...keys]) },
+      create: { key: CLOSED_TRIPS_SETTING_KEY, value: JSON.stringify([...keys]) },
+    });
+    revalidatePath("/");
+    revalidatePath("/admin/bookings");
+    return { ok: true };
+  } catch (err) {
+    console.error("setTripClosed error:", err);
     return { ok: false };
   }
 }

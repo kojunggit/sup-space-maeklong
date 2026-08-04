@@ -7,7 +7,7 @@ export default async function SpecialTripsPage() {
   const trips = await getSpecialTrips();
 
   return (
-    <div style={{ padding: "28px 24px", maxWidth: 720 }}>
+    <div className="px-4 py-5 md:px-6 md:py-7 max-w-[720px]">
       <h2 style={{ fontFamily: "var(--font-kanit)", fontSize: 20, fontWeight: 700, color: "var(--fg-1)", margin: "0 0 6px" }}>
         ทริปพิเศษ
       </h2>

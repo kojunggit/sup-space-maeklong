@@ -1,5 +1,6 @@
 import RoutesClient from "./RoutesClient";
 import { getRoutes } from "@/app/actions/routes";
+import { getCampaignStats } from "@/app/actions/campaign";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,6 @@ export const metadata = {
 };
 
 export default async function RoutesPage() {
-  const routes = await getRoutes();
-  return <RoutesClient routes={routes} />;
+  const [routes, campaignStats] = await Promise.all([getRoutes(), getCampaignStats()]);
+  return <RoutesClient routes={routes} campaignStats={campaignStats} />;
 }

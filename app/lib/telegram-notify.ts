@@ -107,9 +107,12 @@ export function buildBookingMessage(booking: {
   contactId: string | null;
   pickupAddress: string | null;
   notes: string | null;
-}): string {
+}, dbRouteName?: string | null): string {
   const ref       = booking.id.slice(-8).toUpperCase();
-  const routeName = booking.routeId ? (ROUTES_BY_ID[booking.routeId]?.name ?? booking.routeId) : "—";
+  // Routes are DB-driven; the static map only covers the original seed routes,
+  // so prefer the caller-resolved DB name for admin-created routes.
+  const routeName = dbRouteName
+    ?? (booking.routeId ? (ROUTES_BY_ID[booking.routeId]?.name ?? booking.routeId) : "—");
   const timeLabel = formatSlot(booking.timeSlot);
 
   const lines: string[] = [

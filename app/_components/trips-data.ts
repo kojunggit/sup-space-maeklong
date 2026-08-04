@@ -61,6 +61,7 @@ export interface UpcomingTrip {
   joined: number;
   max: number;
   host: string;
+  closed?: boolean;      // admin ปิดรับผู้ร่วมทริปเพิ่ม (แสดงเป็น "เต็ม")
   // Special trip fields (only set when isSpecial = true)
   isSpecial?:            boolean;
   specialTripId?:        string;
@@ -127,7 +128,7 @@ export const CATEGORIES = [
 export const SKILLS: Skill[] = [
   { id: "BEGINNER",     label: "มือใหม่",   note: "ไม่เคยพาย หรือเคยไม่กี่ครั้ง" },
   { id: "INTERMEDIATE", label: "เคยพาย",    note: "พายได้เอง ทรงตัวคล่อง" },
-  { id: "PRO",          label: "เชี่ยวชาญ", note: "พายเองได้ ไม่ต้องไกด์" },
+  { id: "PRO",          label: "เชี่ยวชาญ", note: "พายเองได้ ไม่ต้องมีคนนำทาง" },
 ];
 
 export const DATES: DateOption[] = [

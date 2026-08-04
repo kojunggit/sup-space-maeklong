@@ -1,14 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ROUTES_BY_ID, type UpcomingTrip } from "./trips-data";
+import { ROUTES_BY_ID, type Route, type UpcomingTrip } from "./trips-data";
 import SpecialTripBookingModal from "./SpecialTripBookingModal";
 import { useLang } from "./lang-context";
 import { T } from "./translations";
+import type { DBRoute } from "@/app/actions/routes";
 
 interface UpcomingTripsProps {
   trips: UpcomingTrip[];
   onJoin: (trip: UpcomingTrip) => void;
+  routes?: DBRoute[];
+}
+
+/** Routes are DB-driven; ROUTES_BY_ID only knows the original seed routes, so
+ *  admin-created routes must be resolved from the DB rows passed in. */
+function buildRouteMap(routes?: DBRoute[]): Record<string, Route> {
+  const map: Record<string, Route> = { ...ROUTES_BY_ID };
+  for (const r of routes ?? []) {
+    map[r.id] = {
+      id: r.id, cat: r.cat as Route["cat"], name: r.name, note: r.note,
+      km: r.km, price: r.price, duration: r.duration, recommend: r.recommend,
+    };
+  }
+  return map;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -29,16 +44,16 @@ function timeLabels(timeSlot: string) {
 // ─── Trip Detail Lightbox ──────────────────────────────────────────────────────
 
 function TripDetailModal({
-  trip, onClose, onJoin,
+  trip, route, onClose, onJoin,
 }: {
   trip: UpcomingTrip;
+  route: Route | undefined;
   onClose: () => void;
   onJoin: () => void;
 }) {
   const { lang } = useLang();
   const t = T[lang].trips;
-  const route   = ROUTES_BY_ID[trip.routeId];
-  const full    = trip.joined >= trip.max;
+  const full    = !!trip.closed || trip.joined >= trip.max;
   const seatPct = (trip.joined / trip.max) * 100;
   const [copied, setCopied] = useState(false);
   const { display: timeDisplay, range: timeRange } = timeLabels(trip.timeSlot);
@@ -231,7 +246,7 @@ function TripDetailModal({
                 }
               </div>
               <div style={{ fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 15, color: full ? "var(--danger)" : (isSpecial ? purple : "var(--sup-teal)") }}>
-                {trip.joined}/{trip.max} {t.boards}
+                {trip.closed ? t.full : `${trip.joined}/${trip.max} ${t.boards}`}
               </div>
             </div>
             <div style={{ height: 10, borderRadius: 999, background: isSpecial ? "rgba(123,31,162,0.15)" : "var(--sand-200)", overflow: "hidden" }}>
@@ -306,16 +321,16 @@ function TripDetailModal({
 // ─── Trip Cards ────────────────────────────────────────────────────────────────
 
 function TripCard({
-  trip, onViewDetail,
+  trip, route, onViewDetail,
 }: {
   trip: UpcomingTrip;
+  route: Route | undefined;
   onViewDetail: () => void;
 }) {
   const [hover, setHover] = useState(false);
   const { lang } = useLang();
   const t = T[lang].trips;
-  const route   = ROUTES_BY_ID[trip.routeId];
-  const full    = trip.joined >= trip.max;
+  const full    = !!trip.closed || trip.joined >= trip.max;
   const seatPct = (trip.joined / trip.max) * 100;
   const { display: timeDisplay, range: timeRange } = timeLabels(trip.timeSlot);
 
@@ -374,7 +389,7 @@ function TripCard({
             {t.bookedBy} <strong style={{ color: "var(--fg-1)" }}>{trip.host}</strong>
           </span>
           <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600, color: full ? "var(--danger)" : "var(--fg-2)", whiteSpace: "nowrap" }}>
-            {trip.joined}/{trip.max} {t.boards}
+            {trip.closed ? t.full : `${trip.joined}/${trip.max} ${t.boards}`}
           </span>
         </div>
         <div style={{ height: 6, borderRadius: 999, background: "var(--sand-200)", overflow: "hidden" }}>
@@ -407,7 +422,7 @@ function SpecialTripCard({
   const [hover, setHover] = useState(false);
   const { lang } = useLang();
   const t = T[lang].trips;
-  const full    = trip.joined >= trip.max;
+  const full    = !!trip.closed || trip.joined >= trip.max;
   const seatPct = (trip.joined / trip.max) * 100;
   const { display: timeDisplay } = timeLabels(trip.timeSlot);
 
@@ -489,7 +504,7 @@ function SpecialTripCard({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
           <span style={{ fontFamily: "var(--font-kanit)", fontWeight: 300, fontSize: 12, color: "#7B1FA2" }}>จัดโดยทีมงาน</span>
           <span style={{ fontFamily: "var(--font-inter)", fontSize: 12, fontWeight: 600, color: full ? "var(--danger)" : "#7B1FA2" }}>
-            {trip.joined}/{trip.max} {t.boards}
+            {trip.closed ? t.full : `${trip.joined}/${trip.max} ${t.boards}`}
           </span>
         </div>
         <div style={{ height: 6, borderRadius: 999, background: "rgba(123,31,162,0.15)", overflow: "hidden" }}>
@@ -516,11 +531,12 @@ function SpecialTripCard({
 
 // ─── Section ───────────────────────────────────────────────────────────────────
 
-export default function UpcomingTrips({ trips, onJoin }: UpcomingTripsProps) {
+export default function UpcomingTrips({ trips, onJoin, routes }: UpcomingTripsProps) {
   const [detailTrip,      setDetailTrip]      = useState<UpcomingTrip | null>(null);
   const [specialModalTrip, setSpecialModalTrip] = useState<UpcomingTrip | null>(null);
   const { lang } = useLang();
   const t = T[lang].trips;
+  const routesById = buildRouteMap(routes);
 
   // Auto-open lightbox when arriving from a share link (?trip=<id>)
   useEffect(() => {
@@ -573,7 +589,7 @@ export default function UpcomingTrips({ trips, onJoin }: UpcomingTripsProps) {
             trips.map((trip) => (
               trip.isSpecial
                 ? <SpecialTripCard key={trip.id} trip={trip} onViewDetail={() => setDetailTrip(trip)} />
-                : <TripCard        key={trip.id} trip={trip} onViewDetail={() => setDetailTrip(trip)} />
+                : <TripCard        key={trip.id} trip={trip} route={routesById[trip.routeId]} onViewDetail={() => setDetailTrip(trip)} />
             ))
           )}
         </div>
@@ -583,6 +599,7 @@ export default function UpcomingTrips({ trips, onJoin }: UpcomingTripsProps) {
       {detailTrip && (
         <TripDetailModal
           trip={detailTrip}
+          route={routesById[detailTrip.routeId]}
           onClose={() => setDetailTrip(null)}
           onJoin={() => {
             setDetailTrip(null);

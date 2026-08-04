@@ -74,12 +74,31 @@ export async function getRoutes(): Promise<DBRoute[]> {
 
 // ─── Admin CRUD ───────────────────────────────────────────────────────────────
 
+// Scalar fields only — the client's form state is sometimes seeded from a
+// full DBRoute (which also carries `photos`/`order`); passing those straight
+// to Prisma's `data` throws (photos is a relation, not a plain array) and the
+// whole update silently fails. Always rebuild an explicit scalar-only object.
+type RouteScalarFields = Omit<RouteFormData, "id">;
+
+function pickRouteFields(data: Partial<RouteFormData>): Partial<RouteScalarFields> {
+  const fields: (keyof RouteScalarFields)[] = [
+    "cat", "name", "note", "nameEn", "noteEn",
+    "descTh", "descEn", "warnTh", "warnEn",
+    "km", "price", "duration", "recommend",
+  ];
+  const picked: Partial<RouteScalarFields> = {};
+  for (const f of fields) {
+    if (data[f] !== undefined) (picked[f] as unknown) = data[f];
+  }
+  return picked;
+}
+
 export async function createRoute(data: RouteFormData): Promise<void> {
   await assertAdmin();
   const count = await prisma.paddleRoute.count();
   const slug = data.id.trim() || `route-${Date.now().toString(36)}`;
   await prisma.paddleRoute.create({
-    data: { ...data, id: slug, order: count },
+    data: { ...pickRouteFields(data), id: slug, order: count } as Parameters<typeof prisma.paddleRoute.create>[0]["data"],
   });
   revalidatePath("/routes");
   revalidatePath("/");
@@ -87,7 +106,7 @@ export async function createRoute(data: RouteFormData): Promise<void> {
 
 export async function updateRoute(id: string, data: Partial<RouteFormData>): Promise<void> {
   await assertAdmin();
-  await prisma.paddleRoute.update({ where: { id }, data });
+  await prisma.paddleRoute.update({ where: { id }, data: pickRouteFields(data) });
   revalidatePath("/routes");
   revalidatePath("/");
 }

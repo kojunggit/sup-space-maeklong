@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/app/lib/prisma";
 import { ROUTES_BY_ID } from "@/app/_components/trips-data";
+import {
+  CLOSED_TRIPS_SETTING_KEY,
+  parseClosedTripKeys,
+  regularTripKey,
+  specialTripKey,
+} from "@/app/lib/trip-closure";
 
 const THAI_DAYS_SHORT   = ["อา", "จ.", "อ.", "พ.", "พฤ", "ศ.", "ส."];
 const THAI_DAYS_FULL    = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
@@ -10,8 +16,12 @@ export async function GET() {
   const todayIso = new Date().toISOString().slice(0, 10);
 
   try {
-    const settingRow = await prisma.setting.findUnique({ where: { key: "maxBoards" } }).catch(() => null);
-    const maxBoards  = settingRow ? (parseInt(settingRow.value, 10) || 8) : 8;
+    const [settingRow, closedTripsRow] = await Promise.all([
+      prisma.setting.findUnique({ where: { key: "maxBoards" } }).catch(() => null),
+      prisma.setting.findUnique({ where: { key: CLOSED_TRIPS_SETTING_KEY } }).catch(() => null),
+    ]);
+    const maxBoards = settingRow ? (parseInt(settingRow.value, 10) || 8) : 8;
+    const closedTripKeys = parseClosedTripKeys(closedTripsRow?.value);
 
     // ── Regular trips ──────────────────────────────────────────────────────────
     const rows = await prisma.booking.findMany({
@@ -27,13 +37,23 @@ export async function GET() {
       groups.get(key)!.push(row);
     }
 
+    // Routes are DB-driven; the static map only covers the original seed routes
+    const routeIds  = [...new Set(rows.map((r) => r.routeId).filter(Boolean) as string[])];
+    const routeRows = routeIds.length > 0
+      ? await prisma.paddleRoute.findMany({
+          where:  { id: { in: routeIds } },
+          select: { id: true, cat: true, name: true, note: true, km: true, price: true, duration: true, recommend: true },
+        })
+      : [];
+    const dbRouteMap = Object.fromEntries(routeRows.map((r) => [r.id, r]));
+
     const trips: object[] = [];
 
     for (const bookings of Array.from(groups.values())) {
       const first  = bookings[0];
       const d      = new Date(first.dateIso! + "T00:00:00");
       const joined = bookings.reduce((sum: number, b) => sum + b.paddlers, 0);
-      const route  = first.routeId ? ROUTES_BY_ID[first.routeId] : null;
+      const route  = first.routeId ? (dbRouteMap[first.routeId] ?? ROUTES_BY_ID[first.routeId] ?? null) : null;
       trips.push({
         id:       `${first.dateIso}|${first.timeSlot}|${first.routeId}`,
         type:     "regular",
@@ -46,6 +66,7 @@ export async function GET() {
         joined:   Math.min(joined, maxBoards),
         max:      maxBoards,
         host:     first.guestName ?? "ลูกค้า",
+        closed:   closedTripKeys.has(regularTripKey(first.dateIso!, first.timeSlot, first.routeId!)),
       });
     }
 
@@ -77,6 +98,7 @@ export async function GET() {
         coverPhoto:    st.coverPhoto,
         joined:        Math.min(joined, st.maxBoards),
         max:           st.maxBoards,
+        closed:        closedTripKeys.has(specialTripKey(st.id)),
       });
     }
 

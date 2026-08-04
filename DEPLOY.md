@@ -27,7 +27,7 @@ cd sup-space-maeklong
 
 # ตั้งค่า env
 cp .env.docker.example .env
-nano .env          # ใส่ DB_PASSWORD, ADMIN_PASSWORD, SESSION_SECRET, Google keys
+nano .env          # ใส่ DB_PASSWORD, ADMIN_PASSWORD, SESSION_SECRET และ integration keys ที่ใช้
                    # SESSION_SECRET สร้างด้วย: openssl rand -hex 32
 
 # สร้าง shared network ก่อน (ต้องทำครั้งเดียวต่อ VPS)
@@ -41,6 +41,7 @@ docker compose up -d --build
 - สร้าง Postgres container (ข้อมูลเก็บใน volume `pgdata`)
 - entrypoint รัน `prisma db push` sync schema ตอน start แล้วรัน `next start` (port 3000 ภายใน)
 - แอป **ไม่ publish port** ออก host — Traefik route เข้ามาตาม labels ใน `docker-compose.yml`
+- volume `uploads` เก็บรูปที่ admin อัปโหลดใน `/app/public/uploads` แยกจาก image ของแอป
 
 **สิ่งที่ต้องตรงกับ Traefik ของคุณ** (แก้ใน `docker-compose.yml` ถ้าต่าง):
 - `traefik.http.routers.supspace.entrypoints=websecure` — ชื่อ entrypoint ของ HTTPS
@@ -87,6 +88,8 @@ git pull origin main
 docker compose up -d --build        # build ใหม่ + restart
 docker compose logs -f app          # ดู log
 docker compose exec db pg_dump -U sup_user sup_space > backup_$(date +%F).sql   # backup
+docker run --rm -v sup-space-maeklong_uploads:/data -v "$PWD":/backup alpine \
+  tar czf /backup/uploads_$(date +%F).tar.gz -C /data .  # backup รูปอัปโหลด (ตรวจชื่อ volume ด้วย docker volume ls)
 ```
 
 ---
@@ -121,6 +124,9 @@ sudo bash /home/deploy/sup-space-maeklong/deploy/update.sh
 - VPS (RAM อย่างน้อย 1 GB, แนะนำ 2 GB) รัน Ubuntu
 - โดเมน เช่น `your-domain.com` ตั้ง A record → IP ของ VPS
 - ค่า `GOOGLE_PLACES_API_KEY` + `GOOGLE_PLACE_ID` (ถ้าอยากให้รีวิว Google ทำงาน)
+- Resend API key + verified sender domain (ถ้าต้องการ email แจ้งรับการจอง)
+- Booking API key (ถ้าต้องการให้ chatbot/ระบบภายนอกสร้าง booking)
+- การเชื่อมต่อออก HTTPS ไป Google Sheets, Google Places, Resend, Telegram และ `bot.supspacemaeklong.com` ตามฟีเจอร์ที่เปิดใช้
 
 ---
 
@@ -203,6 +209,11 @@ ADMIN_PASSWORD="รหัสผ่านหน้าadminที่เดาย�
 SESSION_SECRET="ค่าสุ่มยาวๆจาก openssl rand -hex 32"
 GOOGLE_PLACES_API_KEY="..."
 GOOGLE_PLACE_ID="..."
+# เว้นว่างได้ถ้าไม่ส่ง email
+RESEND_API_KEY="re_..."
+RESEND_FROM_EMAIL="booking@your-domain.com"
+# เว้นว่างเพื่อปิด POST /api/booking
+BOOKING_API_KEY="ค่าสุ่มจาก openssl rand -hex 32"
 ```
 
 > หมายเหตุ: ถ้าไม่ตั้ง `SESSION_SECRET` ระบบจะ fallback ไปใช้ `ADMIN_PASSWORD`
@@ -222,8 +233,12 @@ npm ci
 npm run build
 ```
 
-> ถ้า build ผ่าน จะเห็นรายการ route ทั้งหมด (`/`, `/routes`, `/admin/...`)
-> ตาราง `Setting`, `User`, `Booking` จะถูกสร้างใน `sup_space` อัตโนมัติ
+> ถ้า build ผ่าน จะเห็น route หลัก เช่น `/`, `/routes`, `/gallery`, `/dance-challenge`,
+> `/gogreen/*`, `/admin/*` และ `/api/*`
+>
+> `prisma db push` จะ sync ตารางทั้งหมดใน `prisma/schema.prisma` ได้แก่ booking,
+> routes/photos, gallery, members/packages/visits, special trips, Dance Challenge และ GoGreen
+> โปรเจกต์นี้ยังไม่ได้ใช้ Prisma migrations แบบ commit เป็นไฟล์
 
 ---
 
@@ -308,6 +323,7 @@ pm2 restart sup-space
 | รีสตาร์ทแอป | `pm2 restart sup-space` |
 | backup database | `pg_dump -U sup_user sup_space > backup_$(date +%F).sql` |
 | restore database | `psql -U sup_user sup_space < backup.sql` |
+| backup uploads | `tar czf uploads_$(date +%F).tar.gz public/uploads` |
 | ดู log Nginx | `sudo tail -f /var/log/nginx/error.log` |
 
 ---
@@ -329,5 +345,35 @@ sudo ufw enable
   และว่า Postgres รันอยู่ (`sudo systemctl status postgresql`)
 - **เปิดเว็บแล้ว 502 Bad Gateway** → แอปไม่ได้รัน เช็ค `pm2 status` / `pm2 logs`
 - **รีวิว Google ไม่ขึ้น** → ตรวจ `GOOGLE_PLACES_API_KEY` และเปิด Places API ใน Google Cloud
+- **email ยืนยันไม่ส่ง** → ตรวจ `RESEND_API_KEY`, verified domain และ `RESEND_FROM_EMAIL`; ถ้าไม่ตั้ง key ระบบจะข้ามการส่งโดยไม่ทำให้ booking ล้มเหลว
+- **`POST /api/booking` ได้ 503** → ยังไม่ได้ตั้ง `BOOKING_API_KEY`; ตั้งค่าแล้ว restart แอป
+- **GoGreen โหลดรายชื่อไม่ได้** → VPS ต้องออก HTTPS ไป Google Sheets ได้ และ public Sheet/column mapping ใน `app/gogreen/lib/sheet.ts` ต้องยังตรงกับฟอร์มต้นทาง
+- **ChatWidget ติดต่อไม่ได้** → ตรวจ DNS/HTTPS/CORS ของ service แยก `https://bot.supspacemaeklong.com`
 - **หน้า /admin เข้าไม่ได้** → ใช้รหัสตาม `ADMIN_PASSWORD` ใน `.env`
   (แก้แล้วต้อง `pm2 restart sup-space`)
+
+---
+
+## ตรวจหลัง Deploy
+
+```bash
+curl -I https://your-domain.com
+curl https://your-domain.com/api/routes
+curl "https://your-domain.com/api/availability?days=1"
+```
+
+ตรวจด้วย browser เพิ่มเติม:
+
+- ล็อกอิน `/admin` และเปิดหน้า bookings, routes, gallery, members, special trips, settings และ Dance Challenge
+- ทดสอบอัปโหลดรูป แล้ว restart/rebuild เพื่อยืนยันว่า `public/uploads` ยังอยู่
+- ทดสอบ booking หนึ่งรายการ ตรวจ Telegram และ email (ถ้าเปิด integration)
+- ที่ `/admin/bookings` ทดสอบ “ปิดรับจอง” แล้วตรวจว่าหน้าแรกแสดงทริปเป็น “เต็ม”; ทดสอบ “เปิดรับจอง” เพื่อคืนสถานะ
+- ตรวจ `/dance-challenge` และ campaign deadline/config ใน `app/_components/campaign-config.ts`
+- ตรวจสิทธิ์เข้าถึง `/gogreen/*` ก่อนเปิดใช้งานจริง: โค้ดปัจจุบันเปิดหน้าและ server actions เหล่านี้แบบ public และมีข้อมูลชื่อ/เบอร์โทร
+
+## ข้อควรระวังด้านข้อมูล
+
+- สำรองทั้ง PostgreSQL และ uploads volume/directory ก่อน update ที่มี schema หรือ upload changes
+- ห้าม commit `.env`, `.env.save*`, SQL backup หรือไฟล์ export ที่มีข้อมูลลูกค้า
+- Booking capacity แสดงใน UI/API แต่ shared booking writer ปัจจุบันยังไม่ reject รายการที่เกิน `maxBoards`
+- Dance Challenge quota/member grant ปัจจุบันยังไม่ได้รวมใน transaction เดียว ควรหลีกเลี่ยงการ reset counter ระหว่างมี submission

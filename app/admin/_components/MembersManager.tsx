@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import {
   listMembers, createMember, addPackage, cancelPackage, recordVisit,
   undoVisit, getMemberVisits,
@@ -181,13 +181,13 @@ export default function MembersManager({ initialMembers }: Props) {
         </div>
 
         <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label style={labelStyle}>ชื่อสมาชิก *</label>
               <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="มะลิ สุวรรณ" style={inputStyle} /></div>
             <div><label style={labelStyle}>เบอร์โทร *</label>
               <input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="0812345678" style={inputStyle} /></div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><label style={labelStyle}>อีเมล</label>
               <input value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="(ไม่บังคับ)" style={inputStyle} /></div>
             <div><label style={labelStyle}>ช่องทาง / ID ติดต่อ</label>
@@ -270,13 +270,15 @@ export default function MembersManager({ initialMembers }: Props) {
 
             {/* Actions */}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", borderTop: "1px dashed var(--border-1)", paddingTop: 12 }}>
-              {m.usablePackages.map((p) =>
-                tealBtn(
-                  `✅ บันทึกการมา${m.usablePackages.length > 1 ? ` (${p.type === "MONTH" ? "รายเดือน" : `เหลือ ${p.remaining}`})` : ""}`,
-                  () => handleRecord(m, p),
-                  { borderColor: "var(--sup-orange)", color: "var(--sup-orange)" },
-                ),
-              )}
+              {m.usablePackages.map((p) => (
+                <React.Fragment key={p.id}>
+                  {tealBtn(
+                    `✅ บันทึกการมา${m.usablePackages.length > 1 ? ` (${p.type === "MONTH" ? "รายเดือน" : `เหลือ ${p.remaining}`})` : ""}`,
+                    () => handleRecord(m, p),
+                    { borderColor: "var(--sup-orange)", color: "var(--sup-orange)" },
+                  )}
+                </React.Fragment>
+              ))}
               {tealBtn("+ แพค 10 ครั้ง", () => handleAddPackage(m, "COUNT"))}
               {tealBtn("+ แพครายเดือน", () => handleAddPackage(m, "MONTH"))}
               {tealBtn(history[m.id] ? "ซ่อนประวัติ" : "ประวัติ", () => toggleHistory(m), { border: "1.5px solid var(--border-2)", color: "var(--fg-2)" })}

@@ -95,17 +95,18 @@ function toPackageView(p: RawPackage, now: Date): PackageView {
   const remaining = p.type === "COUNT" ? Math.max(0, (p.totalCount ?? 0) - p.usedCount) : null;
   const endDateBE = p.endDate ? toThaiDateBE(p.endDate) : null;
 
+  const countLabel = `แพค ${p.totalCount ?? 0} ครั้ง`;
   let label: string;
   if (p.status === "CANCELLED") {
-    label = p.type === "MONTH" ? "แพครายเดือน · ยกเลิกแล้ว" : "แพค 10 ครั้ง · ยกเลิกแล้ว";
+    label = p.type === "MONTH" ? "แพครายเดือน · ยกเลิกแล้ว" : `${countLabel} · ยกเลิกแล้ว`;
   } else if (p.type === "MONTH") {
     if (p.startDate == null) label = "แพครายเดือน · ยังไม่เริ่มใช้";
     else if (usable)         label = `แพครายเดือน · ใช้ได้ถึง ${endDateBE}`;
     else                     label = `แพครายเดือน · หมดอายุแล้ว (${endDateBE})`;
   } else {
     label = remaining && remaining > 0
-      ? `แพค 10 ครั้ง · เหลือ ${remaining}/${p.totalCount} ครั้ง`
-      : "แพค 10 ครั้ง · ใช้ครบแล้ว";
+      ? `${countLabel} · เหลือ ${remaining}/${p.totalCount} ครั้ง`
+      : `${countLabel} · ใช้ครบแล้ว`;
   }
 
   return {
@@ -220,10 +221,10 @@ export interface CreateMemberInput {
 
 const PACKAGE_PRICE: Record<PackageType, number> = { COUNT: 2900, MONTH: 3500 };
 
-function packageCreateData(type: PackageType) {
+function packageCreateData(type: PackageType, overrides?: { price?: number; totalCount?: number }) {
   return type === "COUNT"
-    ? { type, status: "ACTIVE", price: PACKAGE_PRICE.COUNT, totalCount: 10, usedCount: 0 }
-    : { type, status: "PENDING", price: PACKAGE_PRICE.MONTH, totalCount: null, usedCount: 0 };
+    ? { type, status: "ACTIVE", price: overrides?.price ?? PACKAGE_PRICE.COUNT, totalCount: overrides?.totalCount ?? 10, usedCount: 0 }
+    : { type, status: "PENDING", price: overrides?.price ?? PACKAGE_PRICE.MONTH, totalCount: null, usedCount: 0 };
 }
 
 export async function createMember(input: CreateMemberInput): Promise<{ ok: boolean; id?: string; error?: string }> {
@@ -251,6 +252,52 @@ export async function createMember(input: CreateMemberInput): Promise<{ ok: bool
   } catch (err) {
     console.error("createMember error:", err);
     return { ok: false, error: "บันทึกไม่สำเร็จ กรุณาลองใหม่" };
+  }
+}
+
+// ─── Complimentary package grants (e.g. campaign rewards) ────────────────────
+// Finds or creates a member by phone, then adds a free-of-charge COUNT
+// package. Reused by the Dance Challenge campaign (see app/actions/dance-challenge.ts)
+// to auto-grant "1 ครั้ง" (1-visit) membership to qualifying entrants — the
+// existing membership check-in flow (Telegram bot / admin) then handles
+// redemption exactly like any other package, no extra plumbing needed.
+export interface GrantComplimentaryPackageResult {
+  ok: boolean;
+  memberId?: string;
+  isNewMember?: boolean;
+  error?: string;
+}
+
+export async function grantComplimentaryPackage(
+  name: string,
+  rawPhone: string,
+  visits: number,
+  sourceNote: string,
+): Promise<GrantComplimentaryPackageResult> {
+  const phone = normalizePhone(rawPhone);
+  if (!isValidPhone(phone)) return { ok: false, error: "เบอร์โทรไม่ถูกต้อง" };
+
+  try {
+    const existing = await (prisma as any).member.findUnique({ where: { phone } });
+    const pkgData = packageCreateData("COUNT", { price: 0, totalCount: visits });
+
+    if (existing) {
+      await (prisma as any).memberPackage.create({ data: { memberId: existing.id, ...pkgData } });
+      revalidatePath("/admin");
+      return { ok: true, memberId: existing.id, isNewMember: false };
+    }
+
+    const member = await (prisma as any).member.create({
+      data: {
+        name: name.trim() || "ไม่ระบุชื่อ", phone, note: sourceNote,
+        packages: { create: pkgData },
+      },
+    });
+    revalidatePath("/admin");
+    return { ok: true, memberId: member.id, isNewMember: true };
+  } catch (err) {
+    console.error("grantComplimentaryPackage error:", err);
+    return { ok: false, error: "สร้างสิทธิ์สมาชิกไม่สำเร็จ" };
   }
 }
 
@@ -400,7 +447,7 @@ export async function recordVisit(args: {
       });
       if (upd.count === 0) {
         return { ok: false, outcome: "NO_QUOTA", memberName: member.name,
-          summary: `⛔ <b>${member.name}</b> แพค 10 ครั้งใช้ครบแล้ว\nกรุณาต่อแพคเกจ` } as RecordVisitResult;
+          summary: `⛔ <b>${member.name}</b> แพค ${target.totalCount ?? 0} ครั้งใช้ครบแล้ว\nกรุณาต่อแพคเกจ` } as RecordVisitResult;
       }
       const newUsed = target.usedCount + 1;
       const total = target.totalCount ?? 10;

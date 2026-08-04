@@ -311,7 +311,7 @@ const inputErrorStyle: React.CSSProperties = { ...inputStyle, borderColor: "var(
 const CONTACT_CHANNEL_IDS: ContactChannel[] = ["line", "whatsapp", "messenger"];
 const CONTACT_CHANNEL_ICONS = ["💬", "📲", "🗨️"];
 
-function StepContact({ name, setName, phone, setPhone, email, setEmail, contactChannel, setContactChannel, contactId, setContactId, pickupAddress, setPickupAddress, notes, setNotes, photoPermission, setPhotoPermission, paddlers, summary, fieldErrors }: {
+function StepContact({ name, setName, phone, setPhone, email, setEmail, contactChannel, setContactChannel, contactId, setContactId, pickupAddress, setPickupAddress, notes, setNotes, promoCode, setPromoCode, photoPermission, setPhotoPermission, paddlers, summary, fieldErrors }: {
   name: string; setName: (s: string) => void;
   phone: string; setPhone: (s: string) => void;
   email: string; setEmail: (s: string) => void;
@@ -319,6 +319,7 @@ function StepContact({ name, setName, phone, setPhone, email, setEmail, contactC
   contactId: string; setContactId: (s: string) => void;
   pickupAddress: string; setPickupAddress: (s: string) => void;
   notes: string; setNotes: (s: string) => void;
+  promoCode: string; setPromoCode: (s: string) => void;
   photoPermission: PhotoPermission; setPhotoPermission: (p: PhotoPermission) => void;
   paddlers: number;
   fieldErrors: { name?: string; phone?: string; email?: string };
@@ -408,6 +409,14 @@ function StepContact({ name, setName, phone, setPhone, email, setEmail, contactC
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t.notesPlaceholder} style={{ ...inputStyle, resize: "vertical", minHeight: 68 }} />
       </label>
 
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--fg-2)" }}>
+          {t.promoLabel}{" "}
+          <span style={{ fontWeight: 300, color: "var(--fg-4)" }}>({t.promoNote})</span>
+        </span>
+        <input value={promoCode} onChange={(e) => setPromoCode(e.target.value)} placeholder={t.promoPlaceholder} style={inputStyle} />
+      </label>
+
       <div>
         <Label>{t.photoLabel}</Label>
         <div style={{ padding: "10px 14px", background: "var(--teal-50)", borderRadius: 8, fontSize: 12, color: "var(--teal-700)", lineHeight: 1.65, marginBottom: 10 }}>
@@ -442,6 +451,7 @@ function StepContact({ name, setName, phone, setPhone, email, setEmail, contactC
         <Row k={t.sumRoute}  v={summary.route.name} />
         <Row k={t.sumBoards} v={`${summary.paddlers} ${lang === "th" ? "บอร์ด" : "board" + (summary.paddlers > 1 ? "s" : "")}`} />
         <Row k={t.sumPhoto}  v={photoLabel} />
+        {promoCode.trim() && <Row k={t.sumPromo} v={promoCode.trim()} />}
         <div style={{ borderTop: "1px dashed var(--border-2)", margin: "6px 0" }} />
         <Row k={`${lang === "th" ? "ค่าทัวร์" : "Tour"} (฿${summary.route.price}×${summary.paddlers})`} v={`฿${summary.baseTotal.toLocaleString()}`} muted />
         {summary.photoTotal > 0 && <Row k={`Private photo (฿${PRIVATE_PHOTO_PRICE}×${summary.paddlers})`} v={`+฿${summary.photoTotal.toLocaleString()}`} muted />}
@@ -532,6 +542,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin, rou
   const [email, setEmail]                   = useState("");
   const [pickupAddress, setPickupAddress]   = useState("");
   const [notes, setNotes]                   = useState("");
+  const [promoCode, setPromoCode]           = useState("");
   const [step, setStep]                     = useState(0);
   const [confirmed, setConfirmed]           = useState(false);
   const [submitting, setSubmitting]         = useState(false);
@@ -637,6 +648,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin, rou
       contactId: contactId || undefined,
       pickupAddress: pickupAddress || undefined,
       notes: notes || undefined,
+      promoCode: promoCode.trim() || undefined,
     });
     setSubmitting(false);
     if (result.ok) {
@@ -651,7 +663,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin, rou
     setConfirmed(false);
     setStep(0);
     setName(""); setPhone(""); setEmail("");
-    setPickupAddress(""); setNotes("");
+    setPickupAddress(""); setNotes(""); setPromoCode("");
     setPaddlers(2); setPhotoPermission("allow");
     setContactChannel("line"); setContactId("");
     const todayIso = toIso(new Date());
@@ -727,6 +739,7 @@ export default function BookingWidget({ joinTrip: joinTripProp, onClearJoin, rou
             contactId={contactId} setContactId={setContactId}
             pickupAddress={pickupAddress} setPickupAddress={setPickupAddress}
             notes={notes} setNotes={setNotes}
+            promoCode={promoCode} setPromoCode={setPromoCode}
             photoPermission={photoPermission} setPhotoPermission={setPhotoPermission}
             paddlers={paddlers}
             fieldErrors={fieldErrors}

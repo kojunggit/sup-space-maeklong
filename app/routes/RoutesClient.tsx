@@ -3,9 +3,13 @@
 import Image from "next/image";
 import { CATEGORIES } from "@/app/_components/trips-data";
 import Footer from "@/app/_components/Footer";
+import CampaignBar from "@/app/_components/CampaignBar";
+import { useCampaignBarVisible } from "@/app/_components/useCampaignBar";
+import { CAMPAIGN_BAR_HEIGHT } from "@/app/_components/campaign-config";
 import { LangProvider, useLang } from "@/app/_components/lang-context";
 import { T } from "@/app/_components/translations";
 import type { DBRoute } from "@/app/actions/routes";
+import type { CampaignStats } from "@/app/actions/campaign";
 
 // Category accent colors
 const CAT_ACCENT: Record<string, string> = {
@@ -249,18 +253,21 @@ function CategorySection({ cat, routes }: { cat: string; routes: DBRoute[] }) {
 
 // ─── Page body ─────────────────────────────────────────────────────────────────
 
-function RoutesBody({ routes }: { routes: DBRoute[] }) {
+function RoutesBody({ routes, campaignStats }: { routes: DBRoute[]; campaignStats: CampaignStats }) {
   const { lang } = useLang();
   const t = T[lang].routesPage;
   const byCategory = (cat: string) => routes.filter((r) => r.cat === cat);
   const totalCount = routes.length;
+  const [barVisible] = useCampaignBarVisible();
 
   return (
     <div style={{ background: "var(--bg-page)", minHeight: "100vh" }}>
+      <CampaignBar remainingSlots={campaignStats.remainingSlots} />
 
       {/* ── Minimal nav ─────────────────────────────────────────────────────── */}
       <header style={{
-        position: "sticky", top: 0, zIndex: 50,
+        position: "sticky", top: barVisible ? CAMPAIGN_BAR_HEIGHT : 0, zIndex: 50,
+        transition: "top 200ms var(--ease-out)",
         background: "rgba(251,250,241,0.92)",
         backdropFilter: "blur(12px) saturate(140%)",
         WebkitBackdropFilter: "blur(12px) saturate(140%)",
@@ -474,10 +481,10 @@ function RoutesBody({ routes }: { routes: DBRoute[] }) {
   );
 }
 
-export default function RoutesClient({ routes }: { routes: DBRoute[] }) {
+export default function RoutesClient({ routes, campaignStats }: { routes: DBRoute[]; campaignStats: CampaignStats }) {
   return (
     <LangProvider>
-      <RoutesBody routes={routes} />
+      <RoutesBody routes={routes} campaignStats={campaignStats} />
     </LangProvider>
   );
 }

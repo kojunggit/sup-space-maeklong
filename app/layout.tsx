@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Kanit } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import ChatWidget from "./_components/ChatWidget";
 import "./globals.css";
 
 const kanit = Kanit({ 
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://supspacemaeklong.com"),
   title: "SUP Space Maeklong | พาย SUP เที่ยวตลาดน้ำแม่กลอง สมุทรสงคราม",
   description:
-    "พาย SUP เที่ยวตลาดน้ำและวิถีชีวิตริมคลองแม่กลอง · SUP Maeklong & Paddle Board Thailand floating market tours in Samut Songkhram — beginner-friendly, guided, and one of the best things to do near Bangkok. A true Thailand local experience.",
+    "พาย SUP เที่ยวตลาดน้ำและวิถีชีวิตริมคลองแม่กลอง · SUP Maeklong & Paddle Board Thailand floating market tours in Samut Songkhram — beginner-friendly, with hands-on support throughout, and one of the best things to do near Bangkok. A true Thailand local experience.",
   keywords: [
     "SUP Maeklong",
     "Paddle Board Thailand",
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "SUP Space Maeklong | พาย SUP เที่ยวตลาดน้ำแม่กลอง",
     description:
-      "SUP Maeklong paddle board floating market tours in Samut Songkhram — beginner-friendly guided trips, ~1 hour from Bangkok.",
+      "SUP Maeklong paddle board floating market tours in Samut Songkhram — beginner-friendly trips with hands-on support, ~1 hour from Bangkok.",
     url: "https://supspacemaeklong.com",
     siteName: "SUP Space Maeklong",
     locale: "th_TH",
@@ -55,6 +56,7 @@ export default function RootLayout({
     <html lang="th">
       <body className={`${kanit.variable} ${inter.variable} font-kanit antialiased`}>
         {children}
+        <ChatWidget />
       </body>
       <GoogleAnalytics gaId="G-DN16M1J9SN" />
     </html>

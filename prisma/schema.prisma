@@ -42,6 +42,7 @@ model Booking {
   photoPermission String   @default("allow")  // allow | notAllow | private
   pickupAddress   String?
   notes           String?
+  promoCode       String?  // free-text campaign redemption code, reconciled manually via LINE OA
   total           Int?
   status          String   @default("PENDING")
   createdAt       DateTime @default(now())
@@ -156,4 +157,44 @@ model RoutePhoto {
   caption   String      @default("")
   order     Int         @default(0)
   createdAt DateTime    @default(now())
+}
+
+// ─── "พาย พาย พาย Dance Challenge" campaign entries ────────────────────────────
+// Submitted via the on-site join form (replaces sending info over LINE OA chat).
+// Reviewed manually by staff against the rules (clip length, hashtags, public post).
+
+model DanceChallengeEntry {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String
+  clipUrl      String
+  slotGranted  Boolean  @default(false) // true = 1 of the first 30 unique phones — got the free-trip membership
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([phone])
+}
+
+// ─── "GoGreen" kayak/SUP event check-in ────────────────────────────────────
+// Master registrant list lives in a public Google Sheet (Google Form
+// responses) — read live, never written to. Check-in status (and any
+// walk-in registrants not in the sheet) is tracked here instead, since
+// writing back to the Sheet would require Service Account credentials we
+// don't have.
+
+model GoGreenRegistration {
+  id           String   @id @default(cuid())
+  phone        String   @unique
+  name         String
+  groupType    String   @default("paddle") // "paddle" (ร่วมพายเรือ) | "event" (ผู้ร่วมงาน)
+  boatType     String   // "own" | "kayak1" | "kayak2" | "sup" | "none" | "other"
+  boatNumber   Int?     // sequential per boatType: kayak1 starts 101, kayak2 starts 201
+  organization String?  // หน่วยงาน — collected for walk-ins only
+  note         String?  // หมายเหตุ — collected for walk-ins only
+  isWalkIn     Boolean  @default(false) // true = not found in the Sheet, registered on-site
+  checkedInAt  DateTime @default(now())
+  trashWeightKg Float?  // kg of trash collected — recorded post-paddle, paddlers only
+
+  @@index([checkedInAt])
+  @@index([boatType, boatNumber])
 }

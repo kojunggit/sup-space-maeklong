@@ -1,9 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useLang } from "./lang-context";
 import { T } from "./translations";
+import { useCampaignBarVisible } from "./useCampaignBar";
+import { CAMPAIGN_BAR_HEIGHT } from "./campaign-config";
+import DanceChallengeNavBadge from "./DanceChallengeNavBadge";
 
 interface HeaderProps {
   onBookClick: () => void;
@@ -14,6 +17,7 @@ export default function Header({ onBookClick }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { lang, toggleLang } = useLang();
   const t = T[lang].header;
+  const [barVisible] = useCampaignBarVisible();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 80);
@@ -35,8 +39,8 @@ export default function Header({ onBookClick }: HeaderProps) {
     <>
       <header
         style={{
-          position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
-          transition: "background 220ms var(--ease-out), backdrop-filter 220ms var(--ease-out), box-shadow 220ms var(--ease-out)",
+          position: "fixed", top: barVisible ? CAMPAIGN_BAR_HEIGHT : 0, left: 0, right: 0, zIndex: 50,
+          transition: "top 200ms var(--ease-out), background 220ms var(--ease-out), backdrop-filter 220ms var(--ease-out), box-shadow 220ms var(--ease-out)",
           background: scrolled || menuOpen ? "rgba(251,250,241,0.97)" : "transparent",
           backdropFilter: scrolled || menuOpen ? "blur(12px) saturate(140%)" : "none",
           WebkitBackdropFilter: scrolled || menuOpen ? "blur(12px) saturate(140%)" : "none",
@@ -62,18 +66,20 @@ export default function Header({ onBookClick }: HeaderProps) {
 
           {/* Desktop nav */}
           <nav className="desktop-nav" style={{ display: "flex", gap: 28, alignItems: "center" }} aria-label="Primary">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                style={{
-                  color: linkColor, textDecoration: "none", fontWeight: 500, fontSize: 15,
-                  padding: "8px 4px",
-                  transition: "color var(--dur-fast) var(--ease-out)",
-                }}
-              >
-                {link.label}
-              </a>
+            {navLinks.map((link, i) => (
+              <Fragment key={link.href}>
+                <a
+                  href={link.href}
+                  style={{
+                    color: linkColor, textDecoration: "none", fontWeight: 500, fontSize: 15,
+                    padding: "8px 4px",
+                    transition: "color var(--dur-fast) var(--ease-out)",
+                  }}
+                >
+                  {link.label}
+                </a>
+                {i === 0 && <DanceChallengeNavBadge />}
+              </Fragment>
             ))}
 
             <button
@@ -169,20 +175,26 @@ export default function Header({ onBookClick }: HeaderProps) {
             }}
             aria-label="Mobile navigation"
           >
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                style={{
-                  color: "var(--fg-1)", textDecoration: "none",
-                  fontFamily: "var(--font-kanit)", fontWeight: 500, fontSize: 17,
-                  padding: "14px 0",
-                  borderBottom: "1px solid var(--border-1)",
-                }}
-              >
-                {link.label}
-              </a>
+            {navLinks.map((link, i) => (
+              <Fragment key={link.href}>
+                <a
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                  style={{
+                    color: "var(--fg-1)", textDecoration: "none",
+                    fontFamily: "var(--font-kanit)", fontWeight: 500, fontSize: 17,
+                    padding: "14px 0",
+                    borderBottom: "1px solid var(--border-1)",
+                  }}
+                >
+                  {link.label}
+                </a>
+                {i === 0 && (
+                  <div style={{ padding: "10px 0", borderBottom: "1px solid var(--border-1)" }}>
+                    <DanceChallengeNavBadge />
+                  </div>
+                )}
+              </Fragment>
             ))}
           </nav>
         )}

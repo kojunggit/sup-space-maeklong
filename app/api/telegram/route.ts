@@ -51,7 +51,7 @@ function buildPreview(view: MemberView): { text: string; keyboard?: TgButton[][]
   const btnLabel = (p: PackageView): string =>
     p.type === "MONTH"
       ? (p.startDateIso ? `✅ ใช้รายเดือน (ถึง ${p.endDateBE})` : "✅ ใช้แพครายเดือน")
-      : `✅ ใช้ 10 ครั้ง · เหลือ ${p.remaining}`;
+      : `✅ ใช้ ${p.totalCount ?? 0} ครั้ง · เหลือ ${p.remaining}`;
 
   const keyboard: TgButton[][] = usable.map((p) => [{ text: btnLabel(p), callback_data: `use:${p.id}` }]);
   keyboard.push([{ text: "❌ ยกเลิก", callback_data: "cancel" }]);

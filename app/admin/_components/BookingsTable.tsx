@@ -2,7 +2,8 @@
 
 import React, { useState, useTransition, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { updateBookingStatus, type BookingRecord } from "@/app/actions/booking";
+import { setTripClosed, updateBookingStatus, type BookingRecord } from "@/app/actions/booking";
+import { regularTripKey, specialTripKey } from "@/app/lib/trip-closure";
 import { ROUTES_BY_ID, TIMESLOTS, formatSlot } from "@/app/_components/trips-data";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -42,6 +43,7 @@ interface BookingGroup {
   dateKey: string;    // ISO or Thai string — used for sorting
   timeSlot: string;
   routeId: string | null;
+  specialTripId: string | null;
   bookings: BookingRecord[];
 }
 
@@ -51,9 +53,14 @@ function buildGroups(bookings: BookingRecord[]): BookingGroup[] {
   const map = new Map<string, BookingGroup>();
   for (const b of bookings) {
     const dateKey = b.dateIso ?? b.date;
-    const key     = `${dateKey}|${b.timeSlot}|${b.routeId ?? ""}`;
+    const key = b.specialTripId
+      ? specialTripKey(b.specialTripId)
+      : regularTripKey(dateKey, b.timeSlot, b.routeId ?? "");
     if (!map.has(key)) {
-      map.set(key, { key, date: b.date, dateKey, timeSlot: b.timeSlot, routeId: b.routeId, bookings: [] });
+      map.set(key, {
+        key, date: b.date, dateKey, timeSlot: b.timeSlot,
+        routeId: b.routeId, specialTripId: b.specialTripId, bookings: [],
+      });
     }
     map.get(key)!.bookings.push(b);
   }
@@ -61,6 +68,13 @@ function buildGroups(bookings: BookingRecord[]): BookingGroup[] {
     const d = a.dateKey.localeCompare(b.dateKey);
     return d !== 0 ? d : (SLOT_ORDER[a.timeSlot] ?? 0) - (SLOT_ORDER[b.timeSlot] ?? 0);
   });
+}
+
+function bookingGroupKey(b: BookingRecord): string {
+  const dateKey = b.dateIso ?? b.date;
+  return b.specialTripId
+    ? specialTripKey(b.specialTripId)
+    : regularTripKey(dateKey, b.timeSlot, b.routeId ?? "");
 }
 
 // ─── Status chip ──────────────────────────────────────────────────────────────
@@ -82,12 +96,8 @@ function ActionButton({ label, bg, hoverBg, onClick }: { label: string; bg: stri
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      style={{
-        padding: "5px 12px", background: hover ? hoverBg : bg, color: "#fff",
-        border: "none", borderRadius: 7, fontFamily: "var(--font-kanit)",
-        fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "background 150ms",
-        whiteSpace: "nowrap",
-      }}
+      className="px-3 py-2 md:py-[5px] rounded-[7px] font-kanit text-xs font-semibold whitespace-nowrap cursor-pointer border-none text-white transition-colors duration-150"
+      style={{ background: hover ? hoverBg : bg }}
     >
       {label}
     </button>
@@ -116,7 +126,9 @@ function BookingDetailModal({
   onStatusChange: (id: string, s: "PENDING" | "CONFIRMED" | "CANCELLED") => void;
 }) {
   const meta      = STATUS_META[booking.status] ?? STATUS_META.PENDING;
-  const route     = ROUTES_BY_ID[booking.routeId ?? ""];
+  const staticRoute = ROUTES_BY_ID[booking.routeId ?? ""];
+  const routeName = booking.routeName ?? staticRoute?.name ?? null;
+  const routeKm   = booking.routeKm ?? staticRoute?.km ?? null;
   const slotInfo  = TIMESLOTS.find((t) => t.id === booking.timeSlot);
   const slotLabel = slotInfo ? slotInfo.label : formatSlot(booking.timeSlot);
   const slotTime  = slotInfo ? slotInfo.time  : `${booking.timeSlot} น.`;
@@ -201,7 +213,7 @@ function BookingDetailModal({
           </div>
           <DetailRow label="วันที่" value={booking.date} />
           <DetailRow label="เวลา" value={`${slotLabel} (${slotTime})`} />
-          <DetailRow label="เส้นทาง" value={route ? `${route.name}${route.km ? ` — ${route.km} กม.` : ""}` : (booking.routeId ?? null)} />
+          <DetailRow label="เส้นทาง" value={routeName ? `${routeName}${routeKm ? ` — ${routeKm} กม.` : ""}` : (booking.specialTripName ?? booking.routeId ?? null)} />
           <DetailRow label="จำนวนบอร์ด" value={`${booking.paddlers} บอร์ด`} />
           <DetailRow label="ระดับทักษะ" value={SKILL_LABEL[booking.skillLevel ?? ""] ?? booking.skillLevel} />
           <DetailRow label="น้ำหนักรวม" value={booking.weight ? `${booking.weight} kg` : null} />
@@ -216,6 +228,7 @@ function BookingDetailModal({
           <DetailRow label="การถ่ายภาพ" value={PHOTO_LABEL[booking.photoPermission] ?? booking.photoPermission} />
           <DetailRow label="จุดรับ" value={booking.pickupAddress} />
           <DetailRow label="หมายเหตุ" value={booking.notes} />
+          <DetailRow label="โค้ดโปรโมชัน" value={booking.promoCode} />
 
           {/* Section: การชำระเงิน */}
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--sup-teal)", letterSpacing: "0.08em", marginBottom: 6, marginTop: 14 }}>
@@ -311,6 +324,9 @@ function BookingRow({
       {b.notes && (
         <div style={{ fontSize: 12, color: "var(--fg-3)", marginBottom: 6 }}>💬 {b.notes}</div>
       )}
+      {b.promoCode && (
+        <div style={{ fontSize: 12, color: "var(--campaign-accent)", fontWeight: 600, marginBottom: 6 }}>🎟️ {b.promoCode}</div>
+      )}
 
       {/* Revenue + action buttons */}
       <div style={{
@@ -342,14 +358,20 @@ function GroupCard({
   group,
   onStatusChange,
   onSelect,
+  onTripClosedChange,
+  allowClosure,
 }: {
   group: BookingGroup;
   onStatusChange: (id: string, s: "PENDING" | "CONFIRMED" | "CANCELLED") => void;
   onSelect: (b: BookingRecord) => void;
+  onTripClosedChange: (group: BookingGroup, closed: boolean) => void;
+  allowClosure: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
 
-  const route       = ROUTES_BY_ID[group.routeId ?? ""];
+  const staticRoute = ROUTES_BY_ID[group.routeId ?? ""];
+  const routeName   = group.bookings[0]?.routeName ?? staticRoute?.name ?? null;
+  const routeKm     = group.bookings[0]?.routeKm ?? staticRoute?.km ?? null;
   const slotInfo    = TIMESLOTS.find((t) => t.id === group.timeSlot);
   // Hourly slots ("09:00") won't match legacy TIMESLOTS — fall back gracefully
   const slotLabel   = slotInfo ? slotInfo.label : formatSlot(group.timeSlot);
@@ -359,6 +381,7 @@ function GroupCard({
   const pending     = group.bookings.filter((b) => b.status === "PENDING").length;
   const confirmed   = group.bookings.filter((b) => b.status === "CONFIRMED").length;
   const cancelled   = group.bookings.filter((b) => b.status === "CANCELLED").length;
+  const tripClosed  = group.bookings.some((b) => b.tripClosed);
 
   // Extract day number and short day name from Thai date string "ส. 23 พ.ค."
   const dayNum  = group.date.match(/\d+/)?.[0] ?? "—";
@@ -372,7 +395,7 @@ function GroupCard({
       {/* Clickable header */}
       <div
         onClick={() => setExpanded((x) => !x)}
-        style={{ padding: "14px 18px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}
+        className="p-3 md:px-[18px] md:py-3.5 cursor-pointer flex items-center gap-2.5 md:gap-3.5"
       >
         {/* Date chip */}
         <div style={{
@@ -392,10 +415,11 @@ function GroupCard({
             </span>
           </div>
           <div style={{ fontSize: 13, color: "var(--fg-2)", marginBottom: 7 }}>
-            {route?.name ?? group.routeId ?? "ไม่ระบุเส้นทาง"}
-            {route && <span style={{ fontSize: 12, color: "var(--fg-4)", marginLeft: 8 }}>{route.km} กม</span>}
+            {routeName ?? group.bookings[0]?.specialTripName ?? group.routeId ?? "ไม่ระบุเส้นทาง"}
+            {routeKm != null && routeKm > 0 && <span style={{ fontSize: 12, color: "var(--fg-4)", marginLeft: 8 }}>{routeKm} กม</span>}
           </div>
           <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+            {tripClosed && <Chip label="🔒 ปิดรับจอง · Private" bg="#FFF1F0" color="#CF1322" />}
             {pending   > 0 && <Chip label={`รอ ${pending}`}       bg="#FFF7E6" color="#D46B08" />}
             {confirmed > 0 && <Chip label={`ยืนยัน ${confirmed}`} bg="#F6FFED" color="#389E0D" />}
             {cancelled > 0 && <Chip label={`ยกเลิก ${cancelled}`} bg="#FFF1F0" color="#CF1322" />}
@@ -403,7 +427,7 @@ function GroupCard({
         </div>
 
         {/* Total boards + expand arrow */}
-        <div style={{ textAlign: "right", flexShrink: 0, display: "flex", alignItems: "center", gap: 14 }}>
+        <div className="text-right shrink-0 flex items-center gap-2 md:gap-3.5">
           <div>
             <div style={{ fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 22, color: "var(--fg-1)", lineHeight: 1 }}>
               {totalBoards}
@@ -418,12 +442,43 @@ function GroupCard({
         </div>
       </div>
 
+      {/* Always-visible trip booking control. Kept outside the crowded header
+          so it remains obvious and usable on narrow mobile admin screens. */}
+      {allowClosure && (
+        <div style={{
+          padding: "9px 12px", borderTop: "1px solid var(--border-1)",
+          background: tripClosed ? "#FFF7F6" : "var(--sand-50)",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: 10, flexWrap: "wrap",
+        }}>
+          <div style={{ fontSize: 12, color: tripClosed ? "#A8071A" : "var(--fg-3)" }}>
+            {tripClosed
+              ? "ทริปนี้เป็น Private — หน้าเว็บแสดงว่าเต็มและไม่รับผู้ร่วมเพิ่ม"
+              : "หากลูกค้าขอ Private Trip สามารถปิดรับผู้ร่วมเพิ่มได้"}
+          </div>
+          <button
+            type="button"
+            onClick={() => onTripClosedChange(group, !tripClosed)}
+            style={{
+              border: `1.5px solid ${tripClosed ? "#389E0D" : "#CF1322"}`,
+              background: tripClosed ? "#F6FFED" : "#CF1322",
+              color: tripClosed ? "#237804" : "#fff",
+              borderRadius: 8, padding: "8px 14px", cursor: "pointer",
+              fontFamily: "var(--font-kanit)", fontSize: 13, fontWeight: 700,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {tripClosed ? "🔓 เปิดรับจองอีกครั้ง" : "🔒 ปิดรับจองทริปนี้"}
+          </button>
+        </div>
+      )}
+
       {/* Expanded: individual bookers */}
       {expanded && (
-        <div style={{
-          background: "var(--sand-50)", borderTop: "1px solid var(--border-1)",
-          padding: "12px 16px", display: "grid", gap: 8,
-        }}>
+        <div
+          className="p-2.5 md:px-4 md:py-3 grid gap-2"
+          style={{ background: "var(--sand-50)", borderTop: "1px solid var(--border-1)" }}
+        >
           {group.bookings.length === 0 ? (
             <div style={{ textAlign: "center", padding: "16px 0", color: "var(--fg-4)", fontSize: 13 }}>
               ไม่มีผู้จองในหมวดนี้
@@ -478,8 +533,19 @@ export default function BookingsTable({ upcomingBookings: initialUpcoming, pastB
     });
   };
 
+  const handleTripClosedChange = (group: BookingGroup, closed: boolean) => {
+    setUpcoming((prev) => prev.map((b) => bookingGroupKey(b) === group.key ? { ...b, tripClosed: closed } : b));
+    startTransition(async () => {
+      const result = await setTripClosed(group.key, closed);
+      if (!result.ok) {
+        setUpcoming((prev) => prev.map((b) => bookingGroupKey(b) === group.key ? { ...b, tripClosed: !closed } : b));
+        router.refresh();
+      }
+    });
+  };
+
   return (
-    <div style={{ padding: "16px 24px 40px" }}>
+    <div className="px-3 pt-4 pb-10 md:px-6">
       {selectedBooking && (
         <BookingDetailModal
           booking={selectedBooking}
@@ -542,7 +608,14 @@ export default function BookingsTable({ upcomingBookings: initialUpcoming, pastB
       ) : (
         <div style={{ display: "grid", gap: 10, opacity: isPast ? 0.75 : 1 }}>
           {groups.map((group) => (
-            <GroupCard key={group.key} group={group} onStatusChange={handleStatusChange} onSelect={handleSelect} />
+            <GroupCard
+              key={group.key}
+              group={group}
+              onStatusChange={handleStatusChange}
+              onSelect={handleSelect}
+              onTripClosedChange={handleTripClosedChange}
+              allowClosure={!isPast}
+            />
           ))}
         </div>
       )}
